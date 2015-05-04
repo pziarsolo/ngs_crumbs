@@ -366,13 +366,12 @@ class SNV(object):
             return
         self._mac_analyzed = True
         ploidy = self.ploidy
-        snp = self.record
 
         n_chroms_sampled = 0
         allele_counts = Counter()
-        for call in snp.samples:
+        for call in self.calls:
             if call.called:
-                genotype = map(int, call.gt_alleles)
+                genotype = call.int_alleles
                 assert len(genotype) == ploidy
                 n_chroms_sampled += ploidy
                 for allele in genotype:
@@ -623,8 +622,7 @@ class SNV(object):
 
         sample_indexes = {call.sample: idx for idx, call in enumerate(calls)}
 
-        alleles = set()
-        alleles.update([allele for call in calls if call.called for allele in call.gt_alleles])
+        alleles = set(allele for call in calls if call.called for allele in call.gt_alleles)
         alleles.discard('.')
         int_alleles = list(map(int, alleles))
 
@@ -703,9 +701,8 @@ class Call(object):
         self._has_alternative_counts = None
 
     def _get_depths_gatk(self):
-        call = self.call
-        als = [int(a) for a in call.gt_alleles]
-        al_counts = {al_: al_count for al_count, al_ in zip(call.data.AD, als)}
+        als = self.int_alleles
+        al_counts = {al_: al_count for al_count, al_ in zip(self.call.data.AD, als)}
         self._allele_depths = al_counts
         sum_alt = sum(alc for al, alc in al_counts.items() if al != 0)
         self._alt_sum_depths = sum_alt
