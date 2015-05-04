@@ -220,8 +220,11 @@ class _AlleleCounts2D(object):
         return self._genotypes
 
     def add(self, rc, acs, gt, gq):
-
-        gt = tuple(map(int, sorted(gt)))
+        try:
+            gt = tuple(map(int, sorted(gt)))
+        except TypeError:
+            # Genotype is not defined
+            return None
         if gt != (0, 0):
             if gt[0] == gt[-1]:
                 self._genotypes[HOM_ALT].add(gt)
