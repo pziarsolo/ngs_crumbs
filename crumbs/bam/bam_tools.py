@@ -212,6 +212,10 @@ def downgrade_read_edges(in_fpath, out_fpath, size,
     in_sam = AlignmentFile(in_fpath)
     out_sam = AlignmentFile(out_fpath, 'wb', template=in_sam)
     for aligned_read in in_sam:
+        if (aligned_read.has_tag(LEFT_DOWNGRADED_TAG) or
+                aligned_read.has_tag(RIGTH_DOWNGRADED_TAG)):
+            raise RuntimeError('Edge qualities already downgraded\n')
+
         _downgrade_edge_qualities(aligned_read, size,
                                   qual_to_substract=qual_to_substract)
         out_sam.write(aligned_read)
