@@ -25,7 +25,8 @@ from crumbs.settings import get_setting
 from crumbs.utils.bin_utils import get_num_threads
 from crumbs.utils.optional_modules import (AlignmentFile, view, index, faidx,
                                            calmd)
-
+LEFT_DOWNGRADED_TAG = 'dl'
+RIGTH_DOWNGRADED_TAG = 'dr'
 # pylint: disable=C0111
 
 
@@ -242,5 +243,27 @@ def _downgrade_edge_qualities(aligned_read, size, qual_to_substract):
     def to_sanger_qual(quals):
         return ''.join(chr(33 + qual) for qual in quals)
 
-    aligned_read.set_tag('dl', to_sanger_qual(left_quals), value_type='Z')
-    aligned_read.set_tag('dr', to_sanger_qual(right_quals), value_type='Z')
+    aligned_read.set_tag(LEFT_DOWNGRADED_TAG, to_sanger_qual(left_quals),
+                         value_type='Z')
+    aligned_read.set_tag(RIGTH_DOWNGRADED_TAG, to_sanger_qual(right_quals),
+                         value_type='Z')
+
+
+def _restore_qual_from_tag(aligned_read):
+    def to_phred_qual(quals):
+        return [ord(qual) - 33 for qual in quals]
+    left_quals, rigth_quals = [], []
+    if aligned_read.has_tag(LEFT_DOWNGRADED_TAG):
+        left_quals = aligned_read.get_tag(LEFT_DOWNGRADED_TAG)
+        left_quals = to_phred_qual(left_quals)
+    if aligned_read.has_tag(RIGTH_DOWNGRADED_TAG):
+        rigth_quals = aligned_read.get_tag(RIGTH_DOWNGRADED_TAG)
+        rigth_quals = to_phred_qual(rigth_quals)
+
+    if left_quals or rigth_quals:
+        recover_qual = left_quals
+        left_limit = len(left_quals)
+        rigth_limit = -len(rigth_quals) if len(rigth_quals) else None
+        recover_qual += aligned_read.query_qualities[left_limit:rigth_limit]
+        recover_qual += rigth_quals
+        aligned_read.query_qualities = array('B', recover_qual)

@@ -25,7 +25,9 @@ from crumbs.utils.test_utils import TEST_DATA_DIR
 from crumbs.utils.bin_utils import BAM_BIN_DIR
 from crumbs.bam.bam_tools import (filter_bam, calmd_bam, realign_bam,
                                   index_bam, merge_sams,
-                                  _downgrade_edge_qualities)
+                                  _downgrade_edge_qualities,
+                                  _restore_qual_from_tag, LEFT_DOWNGRADED_TAG,
+    RIGTH_DOWNGRADED_TAG)
 
 # pylint: disable=C0111
 
@@ -159,7 +161,7 @@ class CalmdTest(unittest.TestCase):
 
 class DowngradeQuality(unittest.TestCase):
 
-    def test_downngrade_read_edges(self):
+    def test_downgrade_read_edges(self):
         # With softclip
         bam_fpath = os.path.join(TEST_DATA_DIR, 'sample.bam')
         sam = AlignmentFile(bam_fpath)
@@ -189,14 +191,41 @@ class DowngradeQuality(unittest.TestCase):
         # forward(cigar, seq, qual, ...). Reverse is inly noted in the flag
         bam_fpath = os.path.join(TEST_DATA_DIR, 'sample_rev.bam')
         sam = AlignmentFile(bam_fpath)
-
         aligned_read = sam.next()
         aligned_read = sam.next()
         aligned_read = sam.next()
+        original_qual = aligned_read.query_qualities
         _downgrade_edge_qualities(aligned_read, size=4,
                                   qual_to_substract=30)
         res = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0]
         assert list(aligned_read.query_qualities[:14]) == res
+
+        # check that we can restore the cuals from the tag
+        _restore_qual_from_tag(aligned_read)
+        assert original_qual == aligned_read.query_qualities
+
+        # only restore left quals
+        aligned_read = sam.next()
+        original_qual = aligned_read.query_qualities
+        _downgrade_edge_qualities(aligned_read, size=4,
+                                  qual_to_substract=30)
+        aligned_read.set_tag(RIGTH_DOWNGRADED_TAG, None)
+        changed_rquals = aligned_read.query_qualities[-5:]
+        _restore_qual_from_tag(aligned_read)
+        assert aligned_read.query_qualities[-5:] == changed_rquals
+        assert aligned_read.query_qualities[:10] == original_qual[:10]
+
+        # only restore rigth quals
+        sam = AlignmentFile(os.path.join(TEST_DATA_DIR, 'seqs.bam'))
+        aligned_read = sam.next()
+        original_qual = aligned_read.query_qualities
+        _downgrade_edge_qualities(aligned_read, size=4,
+                                  qual_to_substract=30)
+        aligned_read.set_tag(LEFT_DOWNGRADED_TAG, None)
+        changed_lquals = aligned_read.query_qualities[:5]
+        _restore_qual_from_tag(aligned_read)
+        assert aligned_read.query_qualities[:5] == changed_lquals
+        assert aligned_read.query_qualities[10:] == original_qual[10:]
 
     def test_downgrade_read_edges_binary(self):
         binary = os.path.join(BAM_BIN_DIR, 'downgrade_bam_edge_qual')
@@ -212,5 +241,5 @@ class DowngradeQuality(unittest.TestCase):
             assert read.get_tag('dr') == '8?>>'
 
 if __name__ == "__main__":
-    # import sys; sys.argv = ['', 'DowngradeQuality']
+    import sys; sys.argv = ['', 'DowngradeQuality.test_downgrade_read_edges']
     unittest.main()
