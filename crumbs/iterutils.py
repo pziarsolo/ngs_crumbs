@@ -23,6 +23,8 @@ from collections import namedtuple
 from crumbs.utils.optional_modules import merge_sorted
 from crumbs.exceptions import SampleSizeError
 
+# pylint: disable=C0111
+
 
 class _ListLikeDb(object):
     def __init__(self):
@@ -418,3 +420,112 @@ class RandomAccessIterator(object):
             raise IndexError('Index outside buffered window')
 
         return buff[start:stop:step]
+
+
+class RandomAccessChromIterator(object):
+    def __init__(self, iterator, win_len, pos_getter):
+        self._iter = PeekableIterator(iter(iterator))
+        self._peek_buff = []
+        self._buff = []
+        self._next_item_in_buff = None
+        self._iter_is_consumed = False
+        self.win_len = win_len
+        self.pos_getter = pos_getter
+        self._fill_buff()
+
+    def _item_in_win(self, curr_pos, pos):
+        # pos is a tuple (chrom, start, end)
+        if curr_pos[0] != pos[0]:
+            # different chromosome
+            return False
+        if abs(curr_pos[1] - pos[1]) < self.win_len:
+            # we're only considering the start, this could be changed in the
+            # future
+            return True
+        return False
+
+    def _peek_iter(self):
+        if self._peek_buff:
+            return self._peek_buff.pop()
+
+        try:
+            item = self._iter.peek()
+        except StopIteration:
+            self.iter_is_consumed = True
+            raise
+
+        return item
+
+    def _fill_buff(self):
+        buff = self._buff
+        # if the buffer is empty we add at least one to the buffer
+        if not buff:
+            try:
+                next_item = self._peek_iter()
+            except StopIteration:
+                # we've failed to fill the buffer because there's no items
+                # remaining in the iterator
+                self.iter_is_consumed = True
+                return
+            buff.append(next_item)
+            self._next_item_in_buff = 0
+
+        # We add the items close to the current one
+        if self._next_item_in_buff is None:
+            # we have run out of items in the iterator in the previous next()
+            # call
+            return
+        next_item = buff[self._next_item_in_buff]
+        curr_pos = self.pos_getter(next_item)
+        while True:
+            try:
+                next_item = self._iter.peek()
+            except StopIteration:
+                self.iter_is_consumed = True
+                break
+            next_pos = self.pos_getter(next_item)
+            if self._item_in_win(curr_pos, next_pos):
+                buff.append(next_item)
+            else:
+                self._peek_buff.append(next_item)
+                break
+
+    def _purge_buff(self, pos):
+
+        while True:
+            try:
+                first_item = self._buff[0]
+            except IndexError:
+                break
+            if self._item_in_win(pos, self.pos_getter(first_item)):
+                break
+            else:
+                self._buff.pop(0)
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        self._fill_buff()
+        if self._next_item_in_buff is None:
+            # no more items left and the buffer filling has failed
+            raise StopIteration
+
+        item_to_return = self._buff[self._next_item_in_buff]
+        # we advance the next item pointer
+        self._next_item_in_buff += 1
+        if self._next_item_in_buff >= len(self._buff):
+            # we have to append the next item to the buffer, no matter what
+            # position it has
+            try:
+                self._buff.append(self._iter.next())
+            except StopIteration:
+                self._next_item_in_buff = None
+
+        self._purge_buff(self.pos_getter(item_to_return))
+
+        return item_to_return
+
+    # def fetch(self, pos_start, pos_end):
+        # check that the chromosomes match, else raise ValueError
+    # def windows_around_items(self):

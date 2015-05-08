@@ -27,7 +27,7 @@ from crumbs.bam.bam_tools import (filter_bam, calmd_bam, realign_bam,
                                   index_bam, merge_sams,
                                   _downgrade_edge_qualities,
                                   _restore_qual_from_tag, LEFT_DOWNGRADED_TAG,
-    RIGTH_DOWNGRADED_TAG)
+                                  RIGTH_DOWNGRADED_TAG)
 
 # pylint: disable=C0111
 
