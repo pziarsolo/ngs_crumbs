@@ -66,10 +66,10 @@ class Bowtie2Test(unittest.TestCase):
         map_process_to_bam(bowtie2, bam_fhand.name)
         directory.close()
 
-        #With paired_fpahts option
+        # With paired_fpahts option
         reference_fpath = os.path.join(TEST_DATA_DIR, 'arabidopsis_genes')
-        forward_fpath = os.path.join(TEST_DATA_DIR, 'arabidopsis_reads.fastq')
-        reverse_fpath = NamedTemporaryFile().name
+        forward_fpath = os.path.join(TEST_DATA_DIR, 'arabreads_1.fastq')
+        reverse_fpath = os.path.join(TEST_DATA_DIR, 'arabreads_2.fastq')
         paired_fpaths = (forward_fpath, reverse_fpath)
         directory = TemporaryDir()
         index_fpath = get_or_create_bowtie2_index(reference_fpath,
@@ -82,7 +82,7 @@ class Bowtie2Test(unittest.TestCase):
     def test_rev_compl_fragmented_reads(self):
         index_fpath = os.path.join(TEST_DATA_DIR, 'ref_example.fasta')
 
-        #with unpaired_reads
+        # with unpaired_reads
         query_f = '>seq1\nAAGTTCAATGTAGCAAGGGTACATGCTGACGAGATGGGTCTGCGATCCCTG'
         query_f += 'AGGACACCCAGTCTCCCGGGAGTCTTTTCCAAGGTGTGCTCCTGATCGCCGTGTTA\n'
 
@@ -99,16 +99,16 @@ class Bowtie2Test(unittest.TestCase):
                                    unpaired_fpath=in_fhand.name)
         map_process_to_bam(bowtie2, bam_fhand.name)
         samfile = pysam.Samfile(bam_fhand.name)
-        #for aligned_read in samfile:
+        # for aligned_read in samfile:
         #    print aligned_read
 
-        #with paired_reads.
-        #f is reversed r is direct
+        # with paired_reads.
+        # f is reversed r is direct
         query1 = '>seq10 f\nGGGATCGCAGACCCATCTCGTCAGCATGTACCCTTGCTACATTGAACTT'
         query1 += '\n'
         query2 = '>seq10 r\nATGTAATACGGGCTAGCCGGGGATGCCGACGATTAAACACGCTGTCATA'
         query2 += 'GTAGCGTCTTCCTAGGGTTTTCCCCATGGAATCGGTTATCGTGATACGTTAAATTT\n'
-        #f is direct, r is reversed
+        # f is direct, r is reversed
         query3 = '>seq11 f\nAAGTTCAATGTAGCAAGGGTACATGCTGACGAGATGGGTCTGCGATCCC'
         query3 += '\n'
         query4 = '>seq11 r\nAAATTTAACGTATCACGATAACCGATTCCATGGGGAAAACCCTAGGAAG'
@@ -130,7 +130,7 @@ class Bowtie2Test(unittest.TestCase):
                                    paired_fpaths=paired_fpaths)
         map_process_to_bam(bowtie2, bam_fhand.name)
         samfile = pysam.Samfile(bam_fhand.name)
-        #for aligned_read in samfile:
+        # for aligned_read in samfile:
         #    print aligned_read
 
     def test_tophat(self):
@@ -209,19 +209,19 @@ class Bwa2Test(unittest.TestCase):
     def test_rev_compl_fragmented_reads(self):
         index_fpath = os.path.join(TEST_DATA_DIR, 'ref_example.fasta')
 
-        #with paired_reads.
-        #f is reversed r is direct
+        # with paired_reads.
+        # f is reversed r is direct
         query1 = '>seq10 f\nGGGATCGCAGACCCATCTCGTCAGCATGTACCCTTGCTACATTGAACTT'
         query1 += '\n'
         query2 = '>seq10 r\nATGTAATACGGGCTAGCCGGGGATGCCGACGATTAAACACGCTGTCATA'
         query2 += 'GTAGCGTCTTCCTAGGGTTTTCCCCATGGAATCGGTTATCGTGATACGTTAAATTT\n'
-        #f is direct, r is reversed
+        # f is direct, r is reversed
         query3 = '>seq11 f\nAAGTTCAATGTAGCAAGGGTACATGCTGACGAGATGGGTCTGCGATCCC'
         query3 += '\n'
         query4 = '>seq11 r\nAAATTTAACGTATCACGATAACCGATTCCATGGGGAAAACCCTAGGAAG'
         query4 += 'ACGCTACTATGACAGCGTGTTTAATCGTCGGCATCCCCGGCTAGCCCGTATTACAT\n'
 
-        #f is fragmented in two reference sequences. r mapps completely
+        # f is fragmented in two reference sequences. r mapps completely
         query7 = '>seq4 f\nCAAATCATCACCAGACCATGTCCGATCCCGGGAGTCTTTTCCAAGGTGTGC'
         query7 += 'TCTTTATCCGGCCCTTGCTCAAGGGTATGTTAAAACGGCAAGAGCTGCCTGAGCGCG\n'
         query8 = '>seq4 r\nTGTTCTGCAATCGATACAACGATCGAATTTAATCTGAGTAACTGCCAATTC'
@@ -242,7 +242,7 @@ class Bwa2Test(unittest.TestCase):
         bwa = map_with_bwamem(index_fpath, paired_fpaths=paired_fpaths)
         map_process_to_bam(bwa, bam_fhand.name)
         samfile = pysam.Samfile(bam_fhand.name)
-        #for aligned_read in samfile:
+        # for aligned_read in samfile:
         #    print aligned_read
 
 
@@ -250,7 +250,7 @@ class SortSeqsFileTest(unittest.TestCase):
     def test_sort_by_position_in_ref(self):
         index_fpath = os.path.join(TEST_DATA_DIR, 'ref_example.fasta')
 
-        #with fasta format
+        # with fasta format
         query1 = '>seq1\nGAGAATTAAGCCTATCTGGAGAGCGGTACCAACAGGGAAACACCGACTCA\n'
         query2 = '>seq2\nTAACAGTATGTGCCGTAGGGCCGTCGCCGCATCCACGTTATCGGAAGGGC\n'
         query3 = '>seq3\nTACGGCCGTCCCCCTGCTGCTTATCATCAGGCGACGATAGTCAGCTCCGC\n'
@@ -267,9 +267,9 @@ class SortSeqsFileTest(unittest.TestCase):
             sorted_names.append(get_name(seq))
         expected_names = ['seq2', 'seq3', 'seq1', 'seq5', 'seq4', 'seq6']
         assert sorted_names == expected_names
-        #it fails because bwa somehow gives a position to an unmapped seq
+        # it fails because bwa somehow gives a position to an unmapped seq
 
-        #with fastq format
+        # with fastq format
         query1 += '+\n??????????????????????????????????????????????????\n'
         query2 += '+\n??????????????????????????????????????????????????\n'
         query3 += '+\n??????????????????????????????????????????????????\n'
@@ -287,7 +287,7 @@ class SortSeqsFileTest(unittest.TestCase):
         expected_names = ['seq2', 'seq3', 'seq1', 'seq5', 'seq4', 'seq6']
         assert sorted_names == expected_names
 
-        #sort by sequence
+        # sort by sequence
         sorted_names = []
         for seq in sort_fastx_files([in_fhand], key='seq', directory=None,
                      max_items_in_memory=None, tempdir=None):
@@ -315,5 +315,5 @@ class SortSeqsFileTest(unittest.TestCase):
 
         directory.close()
 if __name__ == '__main__':
-    # import sys;sys.argv = ['', 'SortSeqsFileTest.test_add_rg_to_bam']
+    # import sys;sys.argv = ['', 'Bowtie2Test.test_map_with_bowtie2']
     unittest.main()
