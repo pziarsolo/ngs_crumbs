@@ -33,7 +33,7 @@ except ImportError:
 from crumbs.exceptions import OptionalRequirementError
 
 
-DEF_FILE_BUFFER = 8192*4
+DEF_FILE_BUFFER = 8192 * 4
 
 
 def wrap_in_buffered_reader(fhand, force_wrap=False,
@@ -132,6 +132,12 @@ class TemporaryDir(object):
         '''It removes the temp dir'''
         if os.path.exists(self._name):
             shutil.rmtree(self._name)
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
+    def __enter__(self):
+        return self
 
 
 def _common_base(path1, path2):

@@ -16,7 +16,7 @@
 import os.path
 import unittest
 import shutil
-from subprocess import check_output, check_call
+from subprocess import check_output, check_call, CalledProcessError
 from tempfile import NamedTemporaryFile
 
 from pysam import AlignmentFile
@@ -28,6 +28,7 @@ from crumbs.bam.bam_tools import (filter_bam, calmd_bam, realign_bam,
                                   _downgrade_edge_qualities,
                                   _restore_qual_from_tag, LEFT_DOWNGRADED_TAG,
                                   RIGTH_DOWNGRADED_TAG)
+from crumbs.utils.file_utils import TemporaryDir
 
 # pylint: disable=C0111
 
@@ -240,6 +241,33 @@ class DowngradeQuality(unittest.TestCase):
             assert read.get_tag('dl') == '8)5B'
             assert read.get_tag('dr') == '8?>>'
 
+        # check bam substitution
+        with TemporaryDir() as tmp_dir:
+            dirname = tmp_dir.name
+            shutil.copy(bam_fpath, dirname)
+            bam_fpath = os.path.join(dirname, os.path.basename(bam_fpath))
+            cmd = [binary, bam_fpath, '-t', '/home/peio/']
+            check_call(cmd)
+            sam = AlignmentFile(bam_fpath)
+            res = [0, 0]
+            read = sam.next()
+            assert list(read.query_qualities[:2]) == res
+            assert read.get_tag('dl') == '8)5B'
+            assert read.get_tag('dr') == '8?>>'
+
+            # we can not downgrade an already downgraded bam
+            try:
+                cmd = [binary, bam_fpath]
+                stderr_fhand = NamedTemporaryFile()
+                check_call(cmd, stderr=stderr_fhand)
+                self.fail('CalledProcessError expected')
+            except CalledProcessError:
+                stderr_fhand.flush()
+                msg = 'RuntimeError: Edge qualities already downgraded'
+                if msg not in open(stderr_fhand.name).read():
+                    raise
+
+
 if __name__ == "__main__":
-    import sys; sys.argv = ['', 'DowngradeQuality.test_downgrade_read_edges']
+    # import sys; sys.argv = ['', 'DowngradeQuality']
     unittest.main()
