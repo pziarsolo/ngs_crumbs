@@ -17,6 +17,7 @@
 
 from crumbs.vcf.filters import MonomorphicFilter, filter_snvs
 from crumbs.vcf.utils.bin_utils import setup_filter_argparse, parse_filter_args
+from crumbs.vcf.snv import DEF_MIN_CALLS_FOR_POP_STATS
 
 
 def main():
@@ -27,12 +28,22 @@ def main():
     parser.add_argument('-r', '--freq_threshold', default=1, type=float,
                         help=hlp)
 
+    hlp = 'Min. num. of called genotypes to consider the SNV (Default '
+    hlp += str(DEF_MIN_CALLS_FOR_POP_STATS) + ')'
+    parser.add_argument('-c', '--min_calls', type=int, help=hlp,
+                        default=DEF_MIN_CALLS_FOR_POP_STATS)
+
     filter_snvs_kwargs, filter_class_kwargs, parsed_args = parse_filter_args(parser)
     filter_class_kwargs['freq_threshold'] = parsed_args.freq_threshold
 
+    reader_args = {}
+    min_calls = parsed_args.min_calls
+    if min_calls:
+        reader_args['min_calls_for_pop_stats'] = min_calls
+
     filter_ = MonomorphicFilter(**filter_class_kwargs)
     filter_snvs_kwargs['filters'] = [filter_]
-    filter_snvs(**filter_snvs_kwargs)
+    filter_snvs(reader_kwargs=reader_args, **filter_snvs_kwargs)
 
 
 if __name__ == '__main__':

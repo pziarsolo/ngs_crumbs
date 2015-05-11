@@ -242,7 +242,6 @@ def map_with_bowtie2(index_fpath, paired_fpaths=None,
         stderr = open(log_fpath, 'w')
 
     bowtie2 = popen(cmd, stderr=stderr, stdout=PIPE)
-    # print bowtie2.stdout.read()
     return bowtie2
 
 
@@ -267,7 +266,8 @@ def map_process_to_bam(map_process, bam_fpath, log_fpath=None,
         raise RuntimeError('Error in mapping process')
 
     if samtools.returncode:
-        raise RuntimeError('Error in Sort process')
+        print open(stderr.name).read()
+        raise RuntimeError('Error in samtools process')
 
 
 def map_process_to_sortedbam(map_process, out_fpath, key='coordinate',
