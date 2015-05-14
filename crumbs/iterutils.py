@@ -29,7 +29,7 @@ from crumbs.exceptions import SampleSizeError
 class _ListLikeDb(object):
     def __init__(self):
         self._db_fhand = NamedTemporaryFile(suffix='.sqlite.db')
-        self._conn = sqlite3.connect(self._db_fhand.name)
+        self._conn = sqlite3.connect(self._db_fhand.name)  # @UndefinedVariable
         create = 'CREATE TABLE items(idx INTEGER PRIMARY KEY, item BLOB);'
         self._conn.execute(create)
         self._conn.commit()
@@ -62,7 +62,7 @@ class _ListLikeDb(object):
             idx = self._last_item_returned + 1
         select = 'SELECT item FROM items WHERE idx=?'
         conn = self._conn
-        cursor = conn.execute(select, (idx, ))
+        cursor = conn.execute(select, (idx,))
         item = cursor.fetchone()
         if item is None:
             raise StopIteration()
@@ -125,7 +125,7 @@ def sample_low_mem(iterator, iter_length, sample_size):
         invert = False
 
     selected = set(random.randint(0, iter_length - 1)
-                                           for n in range(num_items_to_select))
+                   for _ in range(num_items_to_select))
     selected_add = selected.add
     while len(selected) < num_items_to_select:
         selected_add(random.randint(0, iter_length - 1))
@@ -138,11 +138,9 @@ def sample_low_mem(iterator, iter_length, sample_size):
 
 def length(iterator):
     'It counts the items in an iterator. It consumes the iterator'
-    count = 0
-    # pylint: disable=W0612
-    for item in iterator:
-        count += 1
-    return count
+    # from http://stackoverflow.com/questions/3345785/getting-number-of-ele
+    # ments-in-an-iterator-in-python
+    return sum(1 for _ in iterator)
 
 
 def group_in_packets_fill_last(iterable, packet_size, fillvalue=None):
@@ -423,7 +421,8 @@ class RandomAccessIterator(object):
 
 
 class RandomAccessChromIterator(object):
-    def __init__(self, iterator, win_len, pos_getter):
+    def __init__(self, iterator, win_len, pos_getter,
+                 debug_min_for_bisect=5):
         self._iter = PeekableIterator(iter(iterator))
         self._peek_buff = []
         self._buff = []
@@ -431,6 +430,8 @@ class RandomAccessChromIterator(object):
         self._iter_is_consumed = False
         self.win_len = win_len
         self.pos_getter = pos_getter
+        self._last_pop = None
+        self._debug_min_for_bisect = debug_min_for_bisect
         self._fill_buff()
 
     def _item_in_win(self, curr_pos, pos):
@@ -446,12 +447,11 @@ class RandomAccessChromIterator(object):
 
     def _peek_iter(self):
         if self._peek_buff:
-            return self._peek_buff.pop()
+            return self._peek_buff.pop(0)
 
         try:
             item = self._iter.peek()
         except StopIteration:
-            self.iter_is_consumed = True
             raise
 
         return item
@@ -465,7 +465,6 @@ class RandomAccessChromIterator(object):
             except StopIteration:
                 # we've failed to fill the buffer because there's no items
                 # remaining in the iterator
-                self.iter_is_consumed = True
                 return
             buff.append(next_item)
             self._next_item_in_buff = 0
@@ -479,9 +478,9 @@ class RandomAccessChromIterator(object):
         curr_pos = self.pos_getter(next_item)
         while True:
             try:
-                next_item = self._iter.peek()
+                # next_item = self._iter.peek()
+                next_item = self._peek_iter()
             except StopIteration:
-                self.iter_is_consumed = True
                 break
             next_pos = self.pos_getter(next_item)
             if self._item_in_win(curr_pos, next_pos):
@@ -500,32 +499,101 @@ class RandomAccessChromIterator(object):
             if self._item_in_win(pos, self.pos_getter(first_item)):
                 break
             else:
-                self._buff.pop(0)
+                self._last_pop = self._buff.pop(0)
+                if self._next_item_in_buff is not None:
+                    self._next_item_in_buff -= 1
 
     def __iter__(self):
         return self
 
     def next(self):
         self._fill_buff()
+
         if self._next_item_in_buff is None:
             # no more items left and the buffer filling has failed
             raise StopIteration
 
         item_to_return = self._buff[self._next_item_in_buff]
+
         # we advance the next item pointer
         self._next_item_in_buff += 1
         if self._next_item_in_buff >= len(self._buff):
             # we have to append the next item to the buffer, no matter what
             # position it has
             try:
-                self._buff.append(self._iter.next())
+                self._buff.append(self._peek_iter())
             except StopIteration:
                 self._next_item_in_buff = None
 
         self._purge_buff(self.pos_getter(item_to_return))
-
         return item_to_return
 
-    # def fetch(self, pos_start, pos_end):
-        # check that the chromosomes match, else raise ValueError
+    def _lt(self, pos1, pos2, chrom_sort_funct=sorted):
+        chrom1, _, end1 = pos1
+        chrom2, start2, _ = pos2
+
+        if chrom1 != chrom2:
+            return True if chrom_sort_funct([chrom1, chrom2])[0] == chrom1 else False
+        else:
+            return True if end1 < start2 else False
+
+    def _gt(self, pos1, pos2, chrom_sort_funct=sorted):
+        chrom1, start1, _ = pos1
+        chrom2, _, end2 = pos2
+
+        if chrom1 != chrom2:
+            return True if chrom_sort_funct([chrom1, chrom2])[0] == chrom2 else False
+        else:
+            return True if start1 > end2 else False
+
+    def _in_buff(self, pos):
+        last_pop = self._last_pop
+        first_in_buff = self._buff[0] if last_pop is None else last_pop
+        last_in_buff = self._peek_iter()
+        # this is necesary not to corrupt peek buffer
+        self._peek_buff.append(last_in_buff)
+        if last_pop is None:
+            # the first element is still in the buffer
+            first_is_lt = True
+        else:
+            first_is_lt = self._lt(self.pos_getter(first_in_buff), pos)
+
+        if last_in_buff is None:
+            # last element is in buffer
+            last_is_gt = True
+        else:
+            last_is_gt = self._gt(self.pos_getter(last_in_buff), pos)
+
+        return True if (first_is_lt and last_is_gt) else False
+
+    def fetch(self, pos):
+        if not self._in_buff(pos):
+            raise IndexError('given window bigger than buffered window')
+        buff = self._buff
+        if len(buff) < self._debug_min_for_bisect:
+            return self._fetch_small_buff(pos)
+        else:
+            return self._fetch_bisect_buff(pos)
     # def windows_around_items(self):
+
+    def _fetch_small_buff(self, pos):
+        for item in self._buff:
+            item_pos = self.pos_getter(item)
+            if not self._gt(item_pos, pos) and not self._lt(item_pos, pos):
+                yield item
+
+    def _fetch_bisect_buff(self, pos):
+        start = self._bisect_right((pos[0], pos[1], pos[1]))
+        end = self._bisect_right((pos[0], pos[2], pos[2]))
+        return islice(self._buff, start, end)
+
+    def _bisect_right(self, pos):
+        lo = 0
+        hi = len(self._buff)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if self._gt(self.pos_getter(self._buff[mid]), pos):
+                hi = mid
+            else:
+                lo = mid + 1
+        return lo

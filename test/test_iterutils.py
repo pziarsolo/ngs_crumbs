@@ -20,8 +20,9 @@ from crumbs.iterutils import (sample, sample_low_mem, length, group_in_packets,
                               rolling_window, group_in_packets_fill_last,
                               sorted_items, unique, unique_unordered,
                               generate_windows, PeekableIterator,
-                              RandomAccessIterator)
+                              RandomAccessIterator, RandomAccessChromIterator)
 from crumbs.exceptions import SampleSizeError
+from collections import namedtuple
 
 # pylint: disable=R0201
 # pylint: disable=R0904
@@ -99,7 +100,7 @@ class IterutilsTest(unittest.TestCase):
         packets = list(group_in_packets(range(4), 2))
         assert packets == [(0, 1), (2, 3)]
 
-        packets = [packet for packet in  group_in_packets(range(5), 2)]
+        packets = [packet for packet in group_in_packets(range(5), 2)]
         assert packets == [(0, 1), (2, 3), (4,)]
 
         packets = list(group_in_packets_fill_last(range(5), 2))
@@ -113,14 +114,16 @@ class IterutilsTest(unittest.TestCase):
         # with series
         serie = '12345'
         assert [''.join(win) for win in rolling_window(serie, 3)] == ['123',
-                                                                  '234', '345']
+                                                                      '234',
+                                                                      '345']
         assert not [''.join(win) for win in rolling_window(serie, 6)]
         assert [''.join(w) for w in rolling_window(serie, 5)] == ['12345']
 
         # with iterator
         iterator = iter(serie)
         assert [''.join(win) for win in rolling_window(iterator, 3)] == ['123',
-                                                                  '234', '345']
+                                                                         '234',
+                                                                         '345']
         iterator = iter(serie)
         assert not [''.join(win) for win in rolling_window(iterator, 6)]
         iterator = iter(serie)
@@ -164,7 +167,7 @@ class IterutilsTest(unittest.TestCase):
     def test_key(self):
         items = [(1, 'a'), (1, 'b'), (2, 'a')]
         _sorted_items = list(sorted_items(iter(items), key=lambda x: x[0],
-                                     max_items_in_memory=1))
+                                          max_items_in_memory=1))
         assert _sorted_items == [(1, 'a'), (1, 'b'), (2, 'a')]
         unique_items = unique(_sorted_items, key=lambda x: x[0])
         assert list(unique_items) == [(1, 'a'), (2, 'a')]
@@ -327,6 +330,123 @@ class RandomAccessTest(unittest.TestCase):
         except StopIteration:
             pass
 
+
+class RandomAccessChromIteratorTest(unittest.TestCase):
+    fake_pos = namedtuple('pos', ['chrom', 'start', 'end'])
+
+    def test_initialize(self):
+        items = [self.fake_pos('chrom1', 24, 24),
+                 self.fake_pos('chrom1', 54, 54),
+                 self.fake_pos('chrom1', 134, 134),
+                 self.fake_pos('chrom1', 145, 145),
+                 self.fake_pos('chrom1', 155, 155),
+                 self.fake_pos('chrom2', 155, 155),
+                 self.fake_pos('chrom3', 155, 155),
+                 self.fake_pos('chrom3', 165, 165)]
+
+        pos_getter = lambda x: (x.chrom, x.start, x.end)
+        random_iter = RandomAccessChromIterator(iter(items), win_len=31,
+                                                pos_getter=pos_getter)
+
+        assert list(random_iter) == items
+
+    def test_gt_lt(self):
+
+        pos_getter = lambda x: (x.chrom, x.start, x.end)
+        random_iter = RandomAccessChromIterator(iter([]), win_len=31,
+                                                pos_getter=pos_getter)
+
+        assert random_iter._lt(('chrom1', 24, 24), ('chrom1', 54, 54))
+        assert random_iter._lt(('chrom1', 24, 24), ('chrom2', 54, 54))
+        assert not random_iter._lt(('chrom2', 24, 24), ('chrom1', 54, 54))
+        assert not random_iter._lt(('chrom1', 54, 54), ('chrom1', 53, 53))
+        assert not random_iter._lt(('chrom1', 4, 4), ('chrom1', 3, 53))
+        assert random_iter._lt(('chrom1', 4, 4), ('chrom1', 5, 53))
+        assert not random_iter._lt(('chrom1', 1, 60), ('chrom1', 24, 24))
+
+        assert not random_iter._gt(('chrom1', 24, 24), ('chrom1', 54, 54))
+        assert not random_iter._gt(('chrom1', 24, 24), ('chrom2', 54, 54))
+        assert random_iter._gt(('chrom2', 24, 24), ('chrom1', 54, 54))
+        assert not random_iter._gt(('chrom1', 24, 24), ('chrom2', 54, 54))
+        assert random_iter._gt(('chrom1', 54, 54), ('chrom1', 53, 53))
+
+        assert not random_iter._gt(('chrom1', 20, 54), ('chrom1', 53, 53))
+        assert not random_iter._gt(('chrom1', 20, 54), ('chrom1', 53, 58))
+        assert not random_iter._gt(('chrom1', 20, 54), ('chrom1', 56, 59))
+        assert random_iter._gt(('chrom1', 20, 54), ('chrom1', 5, 9))
+        assert not random_iter._gt(('chrom1', 134, 134), ('chrom1', 1, 160))
+
+    def test_in_buff(self):
+        items = [self.fake_pos('chrom1', 24, 24),
+                 self.fake_pos('chrom1', 54, 54),
+                 self.fake_pos('chrom1', 134, 134),
+                 self.fake_pos('chrom1', 145, 145),
+                 self.fake_pos('chrom1', 155, 155),
+                 self.fake_pos('chrom3', 155, 155),
+                 self.fake_pos('chrom4', 155, 155),
+                 self.fake_pos('chrom4', 165, 165)]
+
+        pos_getter = lambda x: (x.chrom, x.start, x.end)
+        random_iter = RandomAccessChromIterator(iter(items), win_len=31,
+                                                pos_getter=pos_getter)
+        assert random_iter._in_buff(('chrom1', 1, 60))
+        assert not random_iter._in_buff(('chrom1', 1, 160))
+        assert not random_iter._in_buff(('chrom1', 60, 160))
+        assert random_iter._in_buff(('chrom1', 1, 22))
+
+        random_iter.next()
+        random_iter.next()
+        random_iter.next()
+        assert not random_iter._in_buff(('chrom1', 1, 60))
+        assert random_iter._in_buff(('chrom2', 1, 60))
+        assert random_iter._in_buff(('chrom3', 1, 60))
+        assert not random_iter._in_buff(('chrom3', 1, 160))
+
+    def test_fetch(self):
+        self._t3st_fetch(debug_min_for_bisect=0)
+        self._t3st_fetch(debug_min_for_bisect=5)
+
+    def _t3st_fetch(self, debug_min_for_bisect):
+        items = [self.fake_pos('chrom1', 24, 24),
+                 self.fake_pos('chrom1', 54, 54),
+                 self.fake_pos('chrom1', 134, 134),
+                 self.fake_pos('chrom1', 145, 145),
+                 self.fake_pos('chrom1', 155, 155),
+                 self.fake_pos('chrom2', 155, 155),
+                 self.fake_pos('chrom3', 155, 155),
+                 self.fake_pos('chrom3', 165, 165),
+                 self.fake_pos('chrom6', 165, 165)]
+        pos_getter = lambda x: (x.chrom, x.start, x.end)
+        random_iter = RandomAccessChromIterator(iter(items), win_len=31,
+                                                pos_getter=pos_getter,
+                                                debug_min_for_bisect=debug_min_for_bisect)
+
+        # first item
+        assert list(random_iter.fetch(('chrom1', 1, 60))) == [('chrom1', 24, 24),
+                                                              ('chrom1', 54, 54)]
+
+        # first item
+        assert list(random_iter.fetch(('chrom1', 1, 60))) == [('chrom1', 24, 24),
+                                                              ('chrom1', 54, 54)]
+        try:
+            random_iter.fetch(('chrom1', 1, 135))
+            self.fail('expected IndexError')
+        except IndexError:
+            pass
+        random_iter.next()
+        random_iter.next()
+        assert ('chrom1', 134, 134) == random_iter.next()
+
+        try:
+            random_iter.fetch(('chrom1', 1, 60))
+            self.fail('expected IndexError')
+        except IndexError:
+            pass
+        assert len(list(random_iter.fetch(('chrom1', 60, 160)))) == 3
+        assert len(list(random_iter.fetch(('chrom1', 60, 140)))) == 1
+        assert len(list(random_iter.fetch(('chrom1', 60, 150)))) == 2
+
 if __name__ == '__main__':
-    #import sys;sys.argv = ['', 'IterutilsTest.test_group_in_packets']
+    import sys
+    sys.argv = ['', 'RandomAccessChromIteratorTest']
     unittest.main()
