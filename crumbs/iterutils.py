@@ -428,7 +428,7 @@ class RandomAccessChromIterator(object):
         self._buff = []
         self._next_item_in_buff = None
         self._iter_is_consumed = False
-        self.win_len = win_len
+        self._half_win = win_len / 2
         self.pos_getter = pos_getter
         self._last_pop = None
         self._debug_min_for_bisect = debug_min_for_bisect
@@ -439,7 +439,7 @@ class RandomAccessChromIterator(object):
         if curr_pos[0] != pos[0]:
             # different chromosome
             return False
-        if abs(curr_pos[1] - pos[1]) < self.win_len:
+        if abs(curr_pos[1] - pos[1]) < self._half_win:
             # we're only considering the start, this could be changed in the
             # future
             return True
@@ -574,7 +574,22 @@ class RandomAccessChromIterator(object):
             return self._fetch_small_buff(pos)
         else:
             return self._fetch_bisect_buff(pos)
-    # def windows_around_items(self):
+
+    def windows_around_items(self):
+        half_win = self._half_win
+        for item in self:
+            if self._next_item_in_buff is None or self._next_item_in_buff == 0:
+                item_index = 0
+            else:
+                item_index = self._next_item_in_buff - 1
+            item_pos = self.pos_getter(item)
+
+            win_stop = (item_pos[0], item_pos[1] + half_win,
+                         item_pos[2] + half_win)
+            if self._gt(self.pos_getter(self._buff[-1]), win_stop):
+                yield self._buff[:-1], item_index
+            else:
+                yield self._buff[:], item_index
 
     def _fetch_small_buff(self, pos):
         for item in self._buff:
