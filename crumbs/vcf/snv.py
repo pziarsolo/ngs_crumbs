@@ -612,6 +612,16 @@ class SNV(object):
             return call
         return self.copy_mapping_calls(call_mapper)
 
+    def remove_gt_from_low_depth_calls(self, min_depth):
+        'It returns a new SNV with low depth call set to uncalled'
+        def call_mapper(call):
+            if min_depth is not None and call.depth < min_depth:
+                call = call.copy_setting_gt(gt=None, return_pyvcf_call=True)
+            else:
+                call = call.call
+            return call
+        return self.copy_mapping_calls(call_mapper)
+
     def filter_calls_by_sample(self, samples, reverse=False, keep_info=False):
         calls = [self.get_call(sample).call for sample in samples]
         if reverse:
