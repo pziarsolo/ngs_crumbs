@@ -118,7 +118,7 @@ class LowDepthGenotypeFilter(object):
                                 ylabel='num genotypes', titles=titles,
                                 plots_per_chart=plots_per_chart)
         for axe in plot.axes:
-            axe.axvline(self._min_depthl, linewidth=2, c='#FF8D00')
+            axe.axvline(self._min_depth, linewidth=2, c='#FF8D00')
         plot.write_figure(fhand)
 
 
