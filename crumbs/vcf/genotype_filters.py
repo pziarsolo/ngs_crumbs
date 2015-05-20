@@ -105,7 +105,7 @@ class LowDepthGenotypeFilter(object):
         for call in snv.calls:
             if call.depth is not None:
                 self._scores[call.sample][int(call.depth)] += 1
-        return snv.remove_gt_from_low_qual_calls(min_qual=self._min_depth)
+        return snv.remove_gt_from_low_depth_calls(min_depth=self._min_depth)
 
     def draw_hist(self, fhand):
         counters = self._scores.values()
