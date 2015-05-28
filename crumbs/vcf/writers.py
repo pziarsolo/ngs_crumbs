@@ -369,12 +369,18 @@ def write_map_maker(vcf_fhand, parents_a, parents_b, genos_fhand,
             phys_map_fhand.write('\n')
 
     genos_fhand.write('data type ' + pop_type + '\n')
-    genos_fhand.write('{0} {1} 0\n'.format(len(samples), len(snp_genos)))
+    genos_fhand.write('{0} {1} 1\n'.format(len(samples), len(snp_genos)))
 
     for snp_id, snp_geno in zip(snp_ids, snp_genos):
         genos_fhand.write('*{0}'.format(snp_id))
         genos_fhand.write(sep)
         genos_fhand.write(sep.join(snp_geno))
         genos_fhand.write('\n')
+
+    genos_fhand.write('\n')
+    genos_fhand.write('*sample_names' + sep)
+    encoded_samples = [sample.encode(coding) for sample in samples]
+    genos_fhand.write(sep.join(encoded_samples))
+    genos_fhand.write('\n')
 
     return coder

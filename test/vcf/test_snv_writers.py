@@ -384,10 +384,12 @@ class MapMakerWriterTest(unittest.TestCase):
 20\t18\t.\tG\tA\t29\tPASS\tNS=3\tGT\t0/0\t1/1\t1/1\t0/0\t0/0\t1/1
 '''
     expected = '''data type f2 backcross
-4 3 0
+4 3 1
 *20_11\tA\tA\tB\tB
 *20_16\tA\tA\tB\tB
 *20_17\tA\tA\tB\tB
+
+*sample_names\tS3\tS4\tS5\tS6
 '''
 
     expected_map ='''marker\tposition\tChromosome
@@ -396,15 +398,18 @@ class MapMakerWriterTest(unittest.TestCase):
 20_17\t17\t20
 '''
 
-    def test_mapMakerr(self):
+    def test_mapMaker(self):
         vcf = StringIO(unicode(self.VCF_HEADER + self.vcf))
 
         results_fhand = BytesIO()
+        results_fhand = NamedTemporaryFile()
         phys_fhand = BytesIO()
 
         write_map_maker(vcf, parents_a=['S1'], parents_b=['S2'],
                         genos_fhand=results_fhand,
                         phys_map_fhand=phys_fhand)
+        results_fhand.flush()
+        print open(results_fhand.name).read()
         assert results_fhand.getvalue() == self.expected
         assert phys_fhand.getvalue() == self.expected_map
 
@@ -430,11 +435,9 @@ class MapMakerWriterTest(unittest.TestCase):
                'f2']
         process = Popen(cmd, stderr=PIPE, stdout=PIPE)
         stdout, stderr = process.communicate()
-        print stdout
-        print stderr
         assert 'allowed pop_type' in stderr
 
 
 if __name__ == "__main__":
-    # import sys; sys.argv = ['', 'IlluminaWriterTest.test_illumina_writer']
+    import sys; sys.argv = ['', 'MapMakerWriterTest.test_mapMaker']
     unittest.main()
