@@ -585,7 +585,7 @@ class RandomAccessChromIterator(object):
             item_pos = self.pos_getter(item)
 
             win_stop = (item_pos[0], item_pos[1] + half_win,
-                         item_pos[2] + half_win)
+                        item_pos[2] + half_win)
             if self._gt(self.pos_getter(self._buff[-1]), win_stop):
                 yield self._buff[:-1], item_index
             else:

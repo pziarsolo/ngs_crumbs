@@ -14,7 +14,6 @@
 # along with ngs_crumbs. If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import division
-import os.path
 from collections import Counter
 from StringIO import StringIO
 
@@ -87,6 +86,39 @@ class LowQualityGenotypeFilter(object):
                                 plots_per_chart=plots_per_chart)
         for axe in plot.axes:
             axe.axvline(self._min_qual, linewidth=2, c='#FF8D00')
+        plot.write_figure(fhand)
+
+
+class LowDepthGenotypeFilter(object):
+
+    def __init__(self, min_depth):
+        self._min_depth = min_depth
+        self._scores = {}
+        self._first_snv = True
+
+    def __call__(self, snv):
+        if self._first_snv:
+            for call in snv.calls:
+                self._scores[call.sample] = IntCounter()
+            self._first_snv = False
+
+        for call in snv.calls:
+            if call.depth is not None:
+                self._scores[call.sample][int(call.depth)] += 1
+        return snv.remove_gt_from_low_depth_calls(min_depth=self._min_depth)
+
+    def draw_hist(self, fhand):
+        counters = self._scores.values()
+        samples = self._scores.keys()
+        titles = ['Genotype depth distribution'] * len(counters)
+        plots_per_chart = 3
+        num_cols = 1 if len(counters) <= plots_per_chart else 2
+        plot = HistogramPlotter(counters, distrib_labels=samples,
+                                xlabel='Genotype depth', num_cols=num_cols,
+                                ylabel='num genotypes', titles=titles,
+                                plots_per_chart=plots_per_chart)
+        for axe in plot.axes:
+            axe.axvline(self._min_depth, linewidth=2, c='#FF8D00')
         plot.write_figure(fhand)
 
 

@@ -39,6 +39,7 @@ IUPAC_CODES = {('A', 'C'): 'M',
 IUPAC_CODES = {tuple(sorted(alleles)): code
                for alleles, code in IUPAC_CODES.items()}
 
+DEF_MAPMAKER_POP = 'f2 backcross'
 
 def _get_unicode_alleles(snv):
     return [unicode(allele) for allele in snv.alleles]
@@ -324,5 +325,62 @@ def write_parent_checker(vcf_fhand, parents_a, parents_b, genos_fhand,
         to_write = sep.join(snp_genos[snp_idx][sample_idx] for snp_idx in range(len(snp_ids)))
         genos_fhand.write(to_write)
         genos_fhand.write('\n')
+
+    return coder
+
+
+def write_map_maker(vcf_fhand, parents_a, parents_b, genos_fhand,
+                    pop_type=DEF_MAPMAKER_POP, phys_map_fhand=None,
+                    coder_threshold=DEF_AB_CODER_THRESHOLD,
+                    smooth_threshold=None, recomb_threshold=None):
+    sep = '\t'
+    coder = ABCoder(vcf_fhand, parents_a, parents_b,
+                    parent_index_threshold=coder_threshold,
+                    smooth_threhsold=smooth_threshold,
+                    recomb_threshold=recomb_threshold)
+
+    if pop_type not in ['f2 intercross', 'f2 backcross', 'f3 self',
+                        'ri self', 'ri sib']:
+        msg = 'Defined pop type \'{0}\' does not match an allowed pop_type '
+        msg += '(f2 intercross, f2 backcross, f3 self, ri self or ri sib)'
+        raise ValueError(msg.format(pop_type))
+
+    samples = coder.offspring
+    snp_ids = []
+    snp_genos = []
+    coding = 'ascii'
+
+    if phys_map_fhand is not None:
+        phys_map_fhand.write('marker\tposition\tChromosome\n')
+
+    for snp, genos in coder.recode_genotypes(samples):
+        snp_id = get_or_create_id(snp).encode(coding)
+        snp_ids.append(snp_id)
+        geno_array = array('c')
+        for geno in genos.values():
+            geno_array.append(_code_to_one_letter(geno))
+        snp_genos.append(geno_array)
+        if phys_map_fhand is not None:
+            phys_map_fhand.write(snp_id)
+            phys_map_fhand.write(sep)
+            phys_map_fhand.write(str(snp.POS))
+            phys_map_fhand.write(sep)
+            phys_map_fhand.write(snp.CHROM.encode(coding))
+            phys_map_fhand.write('\n')
+
+    genos_fhand.write('data type ' + pop_type + '\n')
+    genos_fhand.write('{0} {1} 1\n'.format(len(samples), len(snp_genos)))
+
+    for snp_id, snp_geno in zip(snp_ids, snp_genos):
+        genos_fhand.write('*{0}'.format(snp_id))
+        genos_fhand.write(sep)
+        genos_fhand.write(sep.join(snp_geno))
+        genos_fhand.write('\n')
+
+    genos_fhand.write('\n')
+    genos_fhand.write('*sample_names' + sep)
+    encoded_samples = [sample.encode(coding) for sample in samples]
+    genos_fhand.write(sep.join(encoded_samples))
+    genos_fhand.write('\n')
 
     return coder

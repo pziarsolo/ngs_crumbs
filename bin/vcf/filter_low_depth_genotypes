@@ -1,0 +1,48 @@
+#!/usr/bin/env python
+
+# Copyright 2012 Jose Blanca, Peio Ziarsolo, COMAV-Univ. Politecnica Valencia
+# This file is part of ngs_crumbs.
+# ngs_crumbs is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# ngs_crumbs is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR  PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with seq_crumbs. If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+
+from crumbs.vcf.utils.bin_utils import (setup_basic_argparse,
+                                        parse_basic_args)
+from crumbs.vcf.genotype_filters import (LowDepthGenotypeFilter,
+                                         run_genotype_filters)
+
+MIN_DEPTH = 10
+
+
+def main():
+    description = 'It removes from the snvs the genotypes with low depth'
+    parser = setup_basic_argparse(description=description)
+    parser.add_argument('-m', '--min_depth', type=int, default=MIN_DEPTH,
+                        help='default: %(default)s')
+    parser.add_argument('-p', '--plot_file', type=argparse.FileType('w'),
+                        help='Directory to write the plots')
+    args, parsed_args = parse_basic_args(parser)
+
+    min_depth = parsed_args.min_depth
+    plot_fhand = parsed_args.plot_file
+
+    low_depth_filter = LowDepthGenotypeFilter(min_depth=min_depth)
+
+    run_genotype_filters(args['in_fhand'], args['out_fhand'],
+                         gt_filters=[low_depth_filter])
+    if plot_fhand:
+        low_depth_filter.draw_hist(plot_fhand)
+
+if __name__ == '__main__':
+    main()
