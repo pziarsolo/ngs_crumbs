@@ -572,9 +572,9 @@ class BamCoverages1(object):
 
         pileup = ['samtools', 'mpileup', '-B', '-d', str(self.max_coverage)]
         if self.min_mapq:
-            pileup.extend(['-q', self.min_mapq])
+            pileup.extend(['-q', str(self.min_mapq)])
         if self.min_phred:
-            pileup.extend(['-Q', self.min_phred])
+            pileup.extend(['-Q', str(self.min_phred)])
         if one_rg:
             if region:
                 pileup.extend(['-r', region])
@@ -601,14 +601,12 @@ class BamCoverages1(object):
             yield cov
 
     def calculate_coverage_distrib_in_region(self, region=None):
-
         counts = {}
         for bam in self._bams:
             one_rg = True if len(bam['rgs']) < 2 else False
             for read_group in bam['rgs']:
                 sample_field = self.bam_rg_field_for_vcf_sample
-                sample = bam['rgs'][0][sample_field]
-
+                sample = read_group[sample_field]
                 if sample not in counts:
                     counts[sample] = IntCounter()
                 for cov in self._get_coverages_in_bam_rg_win(region, bam,

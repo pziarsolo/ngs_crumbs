@@ -15,7 +15,7 @@
 
 import os.path
 import unittest
-from subprocess import check_output
+from subprocess import check_output, CalledProcessError, check_call
 from tempfile import NamedTemporaryFile
 
 import pysam
@@ -191,6 +191,13 @@ class BamCoverageTest(unittest.TestCase):
         assert 'group2+454' in open(out_fhand2.name).read()
         # raw_input(out_fhand.name)
 
+        out_fhand = NamedTemporaryFile(suffix='.png')
+        out_fhand2 = NamedTemporaryFile(suffix='.txt')
+        cmd = [binary, bam_fpath, '-p', out_fhand.name, '-o', out_fhand2.name,
+               '-q', '30']
+        check_output(cmd)
+        assert 'group2+454' in open(out_fhand2.name).read()
+
 if __name__ == "__main__":
-    # import sys;sys.argv = ['', 'BamCoverageTest.test_bam_coverage']
+    # import sys;sys.argv = ['', 'BamCoverageTest.test_bin_draw_cov_hist']
     unittest.main()
