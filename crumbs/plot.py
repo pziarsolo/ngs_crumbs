@@ -60,7 +60,7 @@ class HistogramPlotter(object):
     def __init__(self, counters, plots_per_chart=1, kind=LINE, num_cols=1,
                  xlabel=None, ylabel=None, ylog_scale=False, ylimits=None,
                  distrib_labels=None, titles=None, xmax=None, xmin=None,
-                 linestyles=None, figsize=None):
+                 linestyles=None, figsize=None, xtickslabel_rotation=None):
         if plots_per_chart > 1 and kind == BAR:
             error_msg = 'if kind is BAR only one plot per chart is allowed'
             raise ValueError(error_msg)
@@ -79,7 +79,8 @@ class HistogramPlotter(object):
         self.canvas = canvas
         axes = self._draw_plot(distrib_labels=distrib_labels, ylimits=ylimits,
                                titles=titles, xmax=xmax, xmin=xmin,
-                               linestyles=linestyles)
+                               linestyles=linestyles,
+                               xtickslabel_rotation=xtickslabel_rotation)
         self.axes = axes
 
     def _get_plot_dimensions(self):
@@ -99,7 +100,7 @@ class HistogramPlotter(object):
 
     def _draw_histogram_in_axe(self, counter, axe, xmax=None, xmin=None,
                                title=None, distrib_label=None, linestyle=None,
-                               ylimits=None):
+                               ylimits=None, xtickslabel_rotation=None):
 
         try:
             distrib = counter.calculate_distribution(max_=xmax, min_=xmin)
@@ -161,7 +162,7 @@ class HistogramPlotter(object):
             xticks_pos = xticks_pos[::step]
             xticks_labels = xticks_labels[::step]
             axe.set_xticks(xticks_pos)
-            axe.set_xticklabels(xticks_labels)
+            axe.set_xticklabels(xticks_labels, rotation=xtickslabel_rotation)
         elif self.kind == LINE:
             kwargs = {}
             if distrib_label is not None:
@@ -185,7 +186,8 @@ class HistogramPlotter(object):
         return axe
 
     def _draw_plot(self, distrib_labels=None, titles=None, xmax=None,
-                   xmin=None, linestyles=None, ylimits=None):
+                   xmin=None, linestyles=None, ylimits=None,
+                   xtickslabel_rotation=None):
         counter_index = 0
         axes = []
         for plot_num in range(1, self.num_plots + 1):
@@ -210,7 +212,8 @@ class HistogramPlotter(object):
                                             xmax=xmax, title=title,
                                             distrib_label=distrib_label,
                                             linestyle=linestyle,
-                                            ylimits=ylimits)
+                                            ylimits=ylimits,
+                                            xtickslabel_rotation=xtickslabel_rotation)
                 counter_index += 1
 
             if distrib_labels is not None:
@@ -222,11 +225,13 @@ class HistogramPlotter(object):
 
 def draw_histogram_in_fhand(counter, fhand, title=None, xlabel=None, xmin=None,
                             xmax=None, ylabel=None, kind=BAR, ylimits=None,
-                            ylog_scale=False, figsize=None):
+                            ylog_scale=False, figsize=None,
+                            xtickslabel_rotation=None):
     'It draws an histogram and if the fhand is given it saves it'
     plot_hist = HistogramPlotter([counter], xlabel=xlabel, ylabel=ylabel,
                                  xmax=xmax, xmin=xmin, titles=[title],
-                                 ylimits=ylimits, kind=kind, figsize=None)
+                                 ylimits=ylimits, kind=kind, figsize=figsize,
+                                 xtickslabel_rotation=xtickslabel_rotation)
     plot_hist.write_figure(fhand)
 
 
