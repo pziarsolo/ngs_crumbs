@@ -180,7 +180,6 @@ def map_with_tophat(index_fpath, out_dir, unpaired_fpath=None,
 
     if tophat.returncode:
         sys.stderr.write('Error in tophat process\n')
-        sys.stderr.write(open(stderr).read())
 
 
 def _bowtie2_index_exists(index_path):
