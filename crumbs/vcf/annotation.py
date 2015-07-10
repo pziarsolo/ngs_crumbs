@@ -715,7 +715,7 @@ class HeterozigoteInSamples(BaseAnnotator):
             result = None
         else:
             percent = int((num_hets / num_calls) * 100)
-            if percent >= self._min_percent_het_gt:
+            if percent > self._min_percent_het_gt:
                 result = True
             else:
                 result = False
