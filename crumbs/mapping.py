@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ngs_crumbs. If not, see <http://www.gnu.org/licenses/>.
 
+import sys
 import os.path
 import shutil
 from subprocess import PIPE
@@ -174,9 +175,11 @@ def map_with_tophat(index_fpath, out_dir, unpaired_fpath=None,
         stderr = NamedTemporaryFile(suffix='.stderr')
     else:
         stderr = open(log_fpath, 'w')
-    # raw_input(' '.join(cmd))
     tophat = popen(cmd, stderr=stderr, stdout=PIPE)
     tophat.communicate()
+
+    if tophat.returncode:
+        sys.stderr.write('Error in tophat process\n')
 
 
 def _bowtie2_index_exists(index_path):
