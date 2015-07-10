@@ -709,7 +709,7 @@ class HeterozigoteInSamples(BaseAnnotator):
                 continue
             if call.gt_qual >= self._gq_threshold:
                 call_is_het.append(call.is_het)
-        num_calls = len(call_is_het)
+        num_calls = len([is_het for is_het in call_is_het if is_het is not None])
         num_hets = len(filter(bool, call_is_het))
         if not num_calls or num_calls < self._min_num_called:
             result = None
