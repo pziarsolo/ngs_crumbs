@@ -548,7 +548,7 @@ SEUC00016_TC01\t112\trs6054257\tT\tC\t29\tPASS\tNS=3;DP=14;AF=0.5;DB;H2\tGT:GQ:D
         # min num samples for not variable
         snvc = snv.copy()
         annotator = IsVariableAnnotator(filter_id=0, samples=['6', '7'],
-                                        min_samples_for_non_var=3)
+                                        min_samples=3)
         annotator(snvc)
         assert snvc.infos['IV0'] == 'None'
 

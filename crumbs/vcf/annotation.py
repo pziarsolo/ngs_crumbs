@@ -492,10 +492,10 @@ class IsVariableAnnotator(BaseAnnotator):
     _ids = count(0)
 
     def __init__(self, samples=None, consider_reference=False, filter_id=None,
-                 min_samples_for_non_var=1):
+                 min_samples=1):
         if filter_id is None:
             filter_id = self._ids.next()
-        self.min_samples_for_non_var = min_samples_for_non_var
+        self.min_samples = min_samples
         self.filter_id = filter_id
         self.samples = samples
         self.consider_reference = consider_reference
@@ -520,13 +520,10 @@ class IsVariableAnnotator(BaseAnnotator):
                 n_samples_called += 1
             alleles.update(int_alleles)
 
-        if not n_samples_called:
+        if not n_samples_called or n_samples_called < self.min_samples:
             is_variable = None
         elif len(alleles) == 1:
-            if len(samples) >= self.min_samples_for_non_var:
-                is_variable = False
-            else:
-                is_variable = None
+            is_variable = False
         else:
             is_variable = True
 
