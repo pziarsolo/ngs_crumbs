@@ -226,6 +226,9 @@ def _downgrade_edge_qualities(aligned_read, size, qual_to_substract):
     right_limit = aligned_read.qend - size
     quals = list(aligned_read.query_qualities)
 
+    if left_limit >= right_limit:
+        right_limit = left_limit + 1
+    
     left_quals = quals[:left_limit]
     right_quals = quals[right_limit:]
 
@@ -241,7 +244,13 @@ def _downgrade_edge_qualities(aligned_read, size, qual_to_substract):
     new_quals = downgraded_left_quals
     new_quals.extend(quals[left_limit:right_limit])
     new_quals.extend(downgraded_right_quals)
-
+    try: 
+        assert len(quals) == len(new_quals)
+    except AssertionError:
+        print left_limit, right_limit
+        print left_quals, downgraded_left_quals
+        print right_quals, downgraded_right_quals
+        raise
     aligned_read.query_qualities = array('B', new_quals)
 
     def to_sanger_qual(quals):
