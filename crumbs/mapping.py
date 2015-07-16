@@ -121,7 +121,7 @@ def map_with_bwamem(index_fpath, unpaired_fpath=None, paired_fpaths=None,
         stderr = NamedTemporaryFile(suffix='.stderr')
     else:
         stderr = open(log_fpath, 'w')
-    raw_input(' '.join(cmd))
+    #raw_input(' '.join(cmd))
     bwa = popen(cmd, stderr=stderr, stdout=PIPE)
     return bwa
 
