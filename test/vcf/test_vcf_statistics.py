@@ -30,7 +30,8 @@ from crumbs.vcf.snv import VCFReader
 from crumbs.vcf.statistics import (VcfStats, HOM_REF, VCFcomparisons,
                                    _AlleleCounts2D, HOM_ALT, HOM, HET,
                                    draw_read_pos_stats,
-                                   calc_snv_read_pos_stats)
+                                   calc_snv_read_pos_stats,
+    calc_snv_read_pos_stats2)
 
 from crumbs.utils.bin_utils import VCF_BIN_DIR
 from crumbs.utils.test_utils import TEST_DATA_DIR
@@ -143,11 +144,22 @@ reference2\t400\tmicrosat1\tGTC\tG,GTCT\t50\tPASS\tNS=3;DP=9;AA=G\tGT:GQ:DP\t./.
         assert 'group1+454' in stats['5_read_pos_counts'].keys()
         assert '5_read_pos_boxplot' in stats
         assert '3_read_pos_boxplot' in stats
+        assert repr(stats['5_read_pos_counts']) == """{'group1+454': IntCounter({24: 9, 1: 9, 44: 9, 29: 9}), 'group2+454': IntCounter({11: 9, 61: 6, 59: 3})}"""
+        assert repr(stats['3_read_pos_counts']) == """{'group1+454': IntCounter({73: 9, 50: 9, 45: 9, 30: 9}), 'group2+454': IntCounter({14: 6, 64: 3, 65: 3, 62: 3, 15: 3})}"""
 
+        snvs = VCFReader(StringIO(vcf)).parse_snvs()
+        bam_fpath = join(TEST_DATA_DIR, 'seqs.bam')
+        sam = pysam.AlignmentFile(bam_fpath)
+        stats = calc_snv_read_pos_stats2(sam, snvs)
+        assert 'group1+454' in stats['5_read_pos_counts'].keys()
+        assert '5_read_pos_boxplot' in stats
+        assert '3_read_pos_boxplot' in stats
+        assert repr(stats['5_read_pos_counts']) == """{'group1+454': IntCounter({24: 9, 1: 9, 44: 9, 29: 9}), 'group2+454': IntCounter({11: 9, 61: 6, 59: 3})}"""
+        assert repr(stats['3_read_pos_counts']) == """{'group1+454': IntCounter({73: 9, 50: 9, 45: 9, 30: 9}), 'group2+454': IntCounter({14: 6, 64: 3, 65: 3, 62: 3, 15: 3})}"""
         fhand = NamedTemporaryFile(suffix='.png')
         draw_read_pos_stats(stats, fhand)
         # raw_input(fhand.name)
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'ReadPosCoord']
+    # import sys;sys.argv = ['', 'ReadPosCoord.test_snv_read_pos_distrib']
     unittest.main()
