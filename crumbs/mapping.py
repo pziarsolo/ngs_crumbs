@@ -121,7 +121,7 @@ def map_with_bwamem(index_fpath, unpaired_fpath=None, paired_fpaths=None,
         stderr = NamedTemporaryFile(suffix='.stderr')
     else:
         stderr = open(log_fpath, 'w')
-    # raw_input(' '.join(cmd))
+    #raw_input(' '.join(cmd))
     bwa = popen(cmd, stderr=stderr, stdout=PIPE)
     return bwa
 
@@ -175,6 +175,8 @@ def map_with_tophat(index_fpath, out_dir, unpaired_fpath=None,
         stderr = NamedTemporaryFile(suffix='.stderr')
     else:
         stderr = open(log_fpath, 'w')
+    print " ".join(cmd)
+    return
     tophat = popen(cmd, stderr=stderr, stdout=PIPE)
     tophat.communicate()
 
@@ -274,7 +276,7 @@ def map_process_to_bam(map_process, bam_fpath, log_fpath=None,
 
 
 def map_process_to_sortedbam(map_process, out_fpath, key='coordinate',
-                             stderr_fhand=None, tempdir=None):
+                              stderr_fhand=None, tempdir=None):
     if stderr_fhand is None:
         stderr = NamedTemporaryFile(suffix='.stderr')
     else:
@@ -286,6 +288,7 @@ def map_process_to_sortedbam(map_process, out_fpath, key='coordinate',
     cmd = ['java', '-jar', picard_jar, 'SortSam', 'I=/dev/stdin',
            'O=' + out_fpath, 'SO=' + key, 'TMP_DIR=' + tempdir,
            'VALIDATION_STRINGENCY=LENIENT']
+    #raw_input(' '.join(cmd))
     sort = popen(cmd, stdin=map_process.stdout, stderr=stderr)
     map_process.stdout.close()
     sort.communicate()
