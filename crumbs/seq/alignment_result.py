@@ -231,7 +231,6 @@ def _lines_for_every_tab_blast(fhand, line_format):
             raise RuntimeError(msg)
         items = dict(zip(line_format, items))
 
-        query = items['query']
         subject = items['subject']
         if 'query_length' in items:
             query_len = int(items['query_length'])
@@ -241,6 +240,7 @@ def _lines_for_every_tab_blast(fhand, line_format):
             subject_len = int(items['subject_length'])
         else:
             subject_len = None
+        query = {'name': items['query'], 'length': query_len}
 
         locations = ('query_start', 'query_end', 'subject_start',
                      'subject_end')
@@ -265,12 +265,12 @@ def _lines_for_every_tab_blast(fhand, line_format):
             match_parts.append({'subject': subject, 'match_part': match_part,
                                 'subject_length': subject_len})
         else:
-            yield ongoing_query, query_len, match_parts
-            match_parts = [{'subject':subject, 'match_part':match_part,
+            yield ongoing_query['name'], ongoing_query['length'], match_parts
+            match_parts = [{'subject': subject, 'match_part': match_part,
                             'subject_length': subject_len}]
             ongoing_query = query
     if ongoing_query:
-        yield ongoing_query, query_len, match_parts
+        yield query['name'], query['length'], match_parts
 
 
 def _group_match_parts_by_subject(match_parts):
@@ -310,15 +310,15 @@ def _tabular_blast_parser(fhand, line_format):
             match_subject_start, match_subject_end = None, None
             for match_part in match_parts:
                 if (match_start is None or
-                    match_part['query_start'] < match_start):
+                        match_part['query_start'] < match_start):
                     match_start = match_part['query_start']
                 if match_end is None or match_part['query_end'] > match_end:
                     match_end = match_part['query_end']
                 if (match_subject_start is None or
-                    match_part['subject_start'] < match_subject_start):
+                        match_part['subject_start'] < match_subject_start):
                     match_subject_start = match_part['subject_start']
                 if (match_subject_end is None or
-                   match_part['subject_end'] > match_subject_end):
+                        match_part['subject_end'] > match_subject_end):
                     match_subject_end = match_part['subject_end']
             subject = {'name': sname}
             if slen:
@@ -333,7 +333,7 @@ def _tabular_blast_parser(fhand, line_format):
             matches.append(match)
         if matches:
             query = {'name': qname}
-            if qlen:
+            if qlen is not None:
                 query['length'] = qlen
             yield {'query': query, 'matches': matches}
 

@@ -170,44 +170,120 @@ class BlastParserTest(unittest.TestCase):
         parser = TabularBlastParser(fhand=blast_file)
 
         expected_results = [
-            {'query':{'name':'primer'},
-             'matches':[
-                 {'subject':{'name':'seq_with_primer2'},
-                  'scores':{'expect': 6e-10},
-                  'match_parts':[{'query_start':6, 'query_end':27,
-                                  'subject_start':15,
-                                  'subject_end':36,
-                                  'scores':{'expect':    6e-10,
-                                            'identity':  100.0}
-                                 }],
-                 },
-                {'subject':{'name':'seq_with_primer'},
-                  'scores':{'expect': 6e-10},
-                  'match_parts':[{'query_start':6, 'query_end':27,
-                                  'subject_start':15,
-                                  'subject_end':36,
-                                  'scores':{'expect':    6e-10,
-                                            'identity':  100.0}
-                                 },
-                                 {'query_start':8, 'query_end':27,
-                                  'subject_start':182,
-                                  'subject_end':201,
-                                  'scores':{'expect':    1e-8,
-                                            'identity':  100.0}
-                                 }
-                  ],
-                 }
+            {'query': {'name': 'primer'},
+             'matches': [
+                 {'subject': {'name': 'seq_with_primer2'},
+                  'scores': {'expect': 6e-10},
+                  'match_parts': [{'query_start': 6, 'query_end': 27,
+                                   'subject_start': 15,
+                                   'subject_end': 36,
+                                   'scores': {'expect': 6e-10,
+                                              'identity': 100.0}
+                                   }],
+                  },
+                 {'subject': {'name': 'seq_with_primer'},
+                  'scores': {'expect': 6e-10},
+                  'match_parts': [{'query_start': 6, 'query_end': 27,
+                                   'subject_start': 15,
+                                   'subject_end': 36,
+                                   'scores': {'expect': 6e-10,
+                                              'identity': 100.0}},
+                                  {'query_start': 8, 'query_end': 27,
+                                   'subject_start': 182,
+                                   'subject_end': 201,
+                                   'scores': {'expect': 1e-8,
+                                              'identity': 100.0}
+                                   }
+                                  ],
+                  }
             ],
             },
-            {'query':{'name':'primer2'},
-            },
+            {'query': {'name': 'primer2'},
+             },
             {}, {}
         ]
+
         n_blasts = 0
         for index, blast in enumerate(parser):
             _check_blast(blast, expected_results[index])
             n_blasts += 1
         assert n_blasts == 2
+
+        blast = '''C1\tCO101UC00586\t515\t630\t1\t515\t547\t33\t0.0\t100.00
+C1\tCO067UC00001\t515\t515\t1\t515\t1\t515\t0.0\t100.00
+C2\tCO099UC15696\t432\t1480\t1\t432\t7\t438\t0.0\t100.00
+C2\tCO098UC20403\t432\t1553\t1\t432\t1525\t1094\t0.0\t100.00
+C2\tCO068UC14746\t432\t1475\t1\t432\t4\t435\t0.0\t100.00
+C3\tCO067UC00003\t328\t328\t1\t328\t1\t328\t7e-172\t100.00'''
+        expected_results = [
+            {'query': {'name': 'C1', 'length': 515},
+             'matches':
+             [
+                 {'subject': {'name': 'CO101UC00586', 'length': 630},
+                  'scores': {'expect': 0.0},
+                  'match_parts': [{'query_start': 0, 'query_end': 514,
+                                   'subject_start': 546, 'subject_end': 32,
+                                   'scores': {'expect': 0.0,
+                                              'identity': 100.0}
+                                   }],
+                  },
+                 {'subject': {'name': 'CO067UC00001', 'length': 515},
+                  'scores': {'expect': 0.0},
+                  'match_parts': [{'query_start': 0, 'query_end': 514,
+                                   'subject_start': 0, 'subject_end': 514,
+                                   'scores': {'expect': 0.0,
+                                              'identity': 100.0}
+                                   }],
+                  }]},
+            {'query': {'name': 'C2', 'length': 432},
+             'matches':
+             [
+                {'subject': {'name': 'CO099UC15696', 'length': 1480},
+                 'scores': {'expect': 0.0},
+                 'match_parts': [{'query_start': 0, 'query_end': 431,
+                                  'subject_start': 6, 'subject_end': 437,
+                                  'scores': {'expect': 0.0,
+                                             'identity': 100.0}
+                                  }]},
+                 {'subject': {'name': 'CO098UC20403', 'length': 1553},
+                  'scores': {'expect': 0.0},
+                  'match_parts': [{'query_start': 0, 'query_end': 431,
+                                   'subject_start': 1524, 'subject_end': 1093,
+                                   'scores': {'expect': 0.0,
+                                              'identity': 100.0}
+                                   }],
+                  },
+                 {'subject': {'name': 'CO068UC14746', 'length': 1475},
+                  'scores': {'expect': 0.0},
+                  'match_parts': [{'query_start': 0, 'query_end': 431,
+                                   'subject_start': 3, 'subject_end': 434,
+                                   'scores': {'expect': 0.0,
+                                              'identity': 100.0}
+                                   }],
+                  }],
+             },
+            {'query': {'name': 'C3', 'length': 328},
+             'matches':
+             [
+                {'subject': {'name': 'CO067UC00003', 'length': 328},
+                 'scores': {'expect': 7e-172},
+                 'match_parts': [{'query_start': 0, 'query_end': 327,
+                                  'subject_start': 0, 'subject_end': 327,
+                                  'scores': {'expect': 7e-172,
+                                             'identity': 100.0}
+                                  }], }, ]
+             }
+            ]
+        blast_file = StringIO(blast)
+        blast_format = ['query', 'subject', 'query_length', 'subject_length',
+                        'query_start', 'query_end', 'subject_start',
+                        'subject_end', 'expect', 'identity']
+        parser = TabularBlastParser(fhand=blast_file, line_format=blast_format)
+        n_blasts = 0
+        for index, blast in enumerate(parser):
+            _check_blast(blast, expected_results[index])
+            n_blasts += 1
+        assert n_blasts == 3
 
     def test_blast_no_result(self):
         'It test that the xml output can be and empty string'
@@ -1068,5 +1144,5 @@ class MergeMatchesTests(unittest.TestCase):
                               'elongated': 2}
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'BlastParserTest.test_blast_tab_parser']
+    # import sys;sys.argv = ['', 'BlastParserTest.test_blast_tab_parser']
     unittest.main()
