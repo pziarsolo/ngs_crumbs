@@ -231,7 +231,8 @@ def draw_histogram_in_fhand(counter, fhand, title=None, xlabel=None, xmin=None,
     plot_hist = HistogramPlotter([counter], xlabel=xlabel, ylabel=ylabel,
                                  xmax=xmax, xmin=xmin, titles=[title],
                                  ylimits=ylimits, kind=kind, figsize=figsize,
-                                 xtickslabel_rotation=xtickslabel_rotation)
+                                 xtickslabel_rotation=xtickslabel_rotation,
+                                 ylog_scale=ylog_scale)
     plot_hist.write_figure(fhand)
 
 
