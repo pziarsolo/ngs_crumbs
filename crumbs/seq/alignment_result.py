@@ -1213,26 +1213,92 @@ def _create_min_length_mapper(length_in_query, min_num_residues=None,
     return map_
 
 
+def _create_full_match_length(allowed_length_diff_percent,
+                              min_num_residues=None):
+    'Query, subject and match should all have the same length'
+    allowed_length_diff = allowed_length_diff_percent / 100
+    allowed_length_diff1 = 1 - allowed_length_diff
+    allowed_length_diff2 = 1 + allowed_length_diff
+
+    def map_(alignment):
+        '''It returns an alignment if matches'''
+        if alignment is None:
+            return None
+        query = alignment.get('query', {})
+        query_len = query.get('length', None)
+        if query_len is None:
+            msg = 'The query length is not defined'
+            query = query.get('name', None)
+            if query is not None:
+                msg += ' for query: ' + query
+            raise ValueError(msg)
+
+        # query is too short
+        if min_num_residues is not None and query_len < min_num_residues:
+            alignment['matches'] = []
+
+        filtered_matches = []
+        for match in alignment['matches']:
+            if match is None:
+                continue
+            subject_len = match['subject']['length']
+
+            if min_num_residues is not None and subject_len < min_num_residues:
+                # subject is too short
+                continue
+
+            missmatch = query_len / subject_len
+            if not allowed_length_diff1 < missmatch < allowed_length_diff2:
+                # query_len and subject_len are too different
+                continue
+
+            max_len = max((query_len, subject_len))
+
+            match_length = _match_length(match, length_from_query=True)
+            missmatch = match_length / max_len
+            if not allowed_length_diff1 < missmatch < allowed_length_diff2:
+                # match too short
+                continue
+            if (min_num_residues is not None and
+                    match_length < min_num_residues):
+                # match too short
+                continue
+            match_length = _match_length(match, length_from_query=False)
+            missmatch = match_length / max_len
+            if not allowed_length_diff1 < missmatch < allowed_length_diff2:
+                # match too short
+                continue
+            if (min_num_residues is not None and
+                    match_length < min_num_residues):
+                # match too short
+                continue
+            filtered_matches.append(match)
+        alignment['matches'] = filtered_matches
+        return alignment
+    return map_
+
+
 MAPPER = 1
 FILTER = 2
 
 
 FILTER_COLLECTION = {'best_scores':
-                                 {'funct_factory': _create_best_scores_mapper,
-                                  'kind': MAPPER},
+                     {'funct_factory': _create_best_scores_mapper,
+                      'kind': MAPPER},
                      'score_threshold':
-                                 {'funct_factory': _create_scores_mapper,
-                                 'kind': MAPPER},
+                     {'funct_factory': _create_scores_mapper, 'kind': MAPPER},
                      'min_length': {'funct_factory': _create_min_length_mapper,
                                     'kind': MAPPER},
                      'deepcopy': {'funct_factory': _create_deepcopy_mapper,
                                   'kind': MAPPER},
                      'fix_matches':
-                                 {'funct_factory': _create_fix_matches_mapper,
-                                  'kind': MAPPER},
+                     {'funct_factory': _create_fix_matches_mapper,
+                      'kind': MAPPER},
                      'filter_empty':
-                                 {'funct_factory': _create_empty_filter,
-                                  'kind': FILTER},
+                     {'funct_factory': _create_empty_filter, 'kind': FILTER},
+                     'full_match_length':
+                     {'funct_factory': _create_full_match_length,
+                      'kind': MAPPER},
                     }
 
 

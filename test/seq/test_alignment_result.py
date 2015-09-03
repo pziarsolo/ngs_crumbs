@@ -814,6 +814,60 @@ class AlignmentFilters(unittest.TestCase):
         _check_blast(filtered_alignments[0], expected_align1)
         assert len(filtered_alignments) == 1
 
+    def test_full_length_match_filter(self):
+        filter1 = {'kind': 'full_match_length',
+                   'min_num_residues': 90,
+                   'allowed_length_diff_percent': 10,
+                   }
+
+        align = {'query': {'name': 'q1', 'length': 100},
+                 'matches': [{'subject': {'name': 's1', 'length': 95},
+                              'match_parts': [{'query_start': 0,
+                                               'query_end': 100,
+                                               'subject_start': 0,
+                                               'subject_end': 91}]},
+                             # subject too long
+                             {'subject': {'name': 's2', 'length': 120},
+                              'match_parts': [{'query_start': 0,
+                                               'query_end': 100,
+                                               'subject_start': 0,
+                                               'subject_end': 100}]},
+                             # match too short
+                             {'subject': {'name': 's3', 'length': 100},
+                              'match_parts': [{'query_start': 0,
+                                               'query_end': 85,
+                                               'subject_start': 0,
+                                               'subject_end': 85}]}]}
+        align2 = {'query': {'name': 'q2', 'length': 115},
+                  'matches': [{'subject': {'name': 's2', 'length': 100},
+                               'match_parts': [{'query_start': 0,
+                                                'query_end': 100,
+                                                'subject_start': 0,
+                                                'subject_end': 100}]}]}
+        alignments = [align, align2]
+        filtered_alignments = list(filter_alignments(alignments,
+                                                     config=[filter1]))
+        assert len(filtered_alignments) == 1
+        assert len(filtered_alignments[0]['matches']) == 1
+        assert filtered_alignments[0]['matches'][0]['subject']['name'] == 's1'
+
+        alignments = [align, align2]
+        filter1 = {'kind': 'full_match_length',
+                   'min_num_residues': 110,
+                   'allowed_length_diff_percent': 50,
+                   }
+        filtered_alignments = list(filter_alignments(alignments,
+                                                     config=[filter1]))
+        assert len(filtered_alignments) == 0
+
+        alignments = [align, align2]
+        filter1 = {'kind': 'full_match_length',
+                   'allowed_length_diff_percent': 50,
+                   }
+        filtered_alignments = list(filter_alignments(alignments,
+                                                     config=[filter1]))
+        assert len(filtered_alignments) == 2
+
     def test_no_filter(self):
         'It test the blast parser'
         blast_file = open(os.path.join(TEST_DATA_DIR, 'blast.xml'))
@@ -1144,5 +1198,5 @@ class MergeMatchesTests(unittest.TestCase):
                               'elongated': 2}
 
 if __name__ == "__main__":
-    # import sys;sys.argv = ['', 'BlastParserTest.test_blast_tab_parser']
+    # import sys;sys.argv = ['', 'AlignmentFilters.test_full_length_match_filter']
     unittest.main()
