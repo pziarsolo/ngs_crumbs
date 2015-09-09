@@ -328,6 +328,13 @@ def calculate_distance_distribution(interleave_fhand, index_fpath,
                           extra_params=extra_params, threads=threads)
     map_process_to_sortedbam(bwa, bam_fhand.name, key='queryname',
                              tempdir=tempdir)
+    return calculate_distance_distribution_in_bam(bam_fhand,
+                                                  max_clipping=max_clipping,
+                                                  max_distance=max_distance)
+
+
+def calculate_distance_distribution_in_bam(bam_fhand, max_clipping,
+                                           max_distance=None):
     bamfile = AlignmentFile(bam_fhand.name)
     stats = {'outies': IntCounter(), 'innies': IntCounter(),
              'others': IntCounter()}

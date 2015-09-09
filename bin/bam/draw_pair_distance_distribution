@@ -21,8 +21,7 @@ import argparse
 
 from crumbs.utils.bin_utils import main
 from crumbs.settings import get_setting
-from crumbs.seq.mate_chimeras import calculate_distance_distribution
-from crumbs.utils.tags import GUESS_FORMAT
+from crumbs.seq.mate_chimeras import calculate_distance_distribution_in_bam
 from crumbs.plot import draw_histograms
 
 
@@ -30,21 +29,13 @@ def create_argparse(add_reverse=True, **kwargs):
     'It returns a cmd parser for the filter executables'
     parser = argparse.ArgumentParser(**kwargs)
     parser.add_argument('input', type=argparse.FileType('rt'),
-                        help='Interleaved sequence input file')
-    parser.add_argument('-r', '--bwa_index', default=None,
-                        help='Path to bwa index')
-    hlp_fmt = 'Format of the input files (default: %(default)s)'
-    parser.add_argument('-t', '--in_format', default=GUESS_FORMAT,
-                        help=hlp_fmt)
+                        help='bam file')
+
     parser.add_argument('-o', '--outfile', required=True,
                         help='Output file', type=argparse.FileType('wt'))
 
     parser.add_argument('-m', '--max_distance', default=None, type=int,
                         help='Max distance to be plotted')
-    parser.add_argument('--tempdir', default='/tmp',
-                        help='Path for temporary files (default /tmp)')
-    parser.add_argument('--threads', default=None, type=int,
-                        help='number of threads for mapping (default 1)')
 
     settings = get_setting('CHIMERAS_SETTINGS')
     help2 = 'Proportion of mapping positions required to consider a read '
@@ -59,10 +50,7 @@ def parse_args(parser):
     parsed_args = parser.parse_args()
 
     args = {}
-    args['in_fhand'] = parsed_args.input
-    args['bwa_index'] = parsed_args.bwa_index
-    args['tempdir'] = parsed_args.tempdir
-    args['threads'] = parsed_args.threads
+    args['bam_fhand'] = parsed_args.input
     args['max_clipping'] = parsed_args.max_clipping
     args['max_distance'] = parsed_args.max_distance
     args['out_fhand'] = parsed_args.outfile
@@ -75,15 +63,12 @@ def run():
     description += ' orientation'
     parser = create_argparse(description=description)
     args = parse_args(parser)[0]
-    in_fhand = args['in_fhand']
-    index_fpath = args['bwa_index']
     out_fhand = args['out_fhand']
+    bam_fhand = args['bam_fhand']
 
-    stats = calculate_distance_distribution(in_fhand, index_fpath,
+    stats = calculate_distance_distribution_in_bam(bam_fhand,
                                             max_clipping=args['max_clipping'],
-                                            max_distance=args['max_distance'],
-                                            tempdir=args['tempdir'],
-                                            threads=args['threads'])
+                                            max_distance=args['max_distance'])
 
     counters = []
     titles = ['Pair distance Distributions'] * len(stats)
