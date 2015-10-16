@@ -47,7 +47,8 @@ def _parse_pair_direction_and_name_from_title(title):
             else:
                 raise PairDirectionError('unknown direction descriptor')
             return name, direction
-    raise PairDirectionError('Unable to detect the direction of the seq')
+    msg = 'Unable to detect the direction of the seq, {}'.format(title)
+    raise PairDirectionError(msg)
 
 
 def _get_paired_and_orphan(reads, ordered, max_reads_memory, temp_dir):
