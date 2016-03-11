@@ -158,7 +158,7 @@ def _3end_mapped(alignment_read, max_clipping):
 def _find_distance(aligned_reads):
     'It returns distance between two aligned_reads in the reference seq'
     aligned_reads.sort(key=lambda x: x.pos)
-    return aligned_reads[1].pos - aligned_reads[0].aend
+    return aligned_reads[1].aend - aligned_reads[0].pos
 
 
 def _mates_are_outies(mates):
