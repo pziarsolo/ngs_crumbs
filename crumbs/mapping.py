@@ -175,8 +175,8 @@ def map_with_tophat(index_fpath, out_dir, unpaired_fpath=None,
         stderr = NamedTemporaryFile(suffix='.stderr')
     else:
         stderr = open(log_fpath, 'w')
-    print " ".join(cmd)
-    return
+    #print " ".join(cmd)
+    #return
     tophat = popen(cmd, stderr=stderr, stdout=PIPE)
     tophat.communicate()
 
