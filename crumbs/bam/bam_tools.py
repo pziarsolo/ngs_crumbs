@@ -280,3 +280,39 @@ def _restore_qual_from_tag(aligned_read):
         recover_qual += aligned_read.query_qualities[left_limit:rigth_limit]
         recover_qual += rigth_quals
         aligned_read.query_qualities = array('B', recover_qual)
+
+
+def mark_duplicates(in_fpath, out_fpath=None, tmp_dir=None, metric_fpath=None):
+    if out_fpath is None:
+        out_fpath = in_fpath
+
+    if out_fpath == in_fpath:
+        mark_dup_fhand = NamedTemporaryFile(suffix='.mark_dup.bam',
+                                            delete=False, dir=tmp_dir)
+        temp_out_fpath = mark_dup_fhand.name
+    else:
+        temp_out_fpath = out_fpath
+
+    failed = _mark_duplicates(in_fpath, temp_out_fpath, metric_fpath)
+
+    if failed:
+        msg = 'Mark duplicate process failed, for {}'
+        raise RuntimeError(msg.format(in_fpath))
+
+    if temp_out_fpath != out_fpath:
+        shutil.move(temp_out_fpath, out_fpath)
+
+
+def _mark_duplicates(in_fpath, out_fpath, metric_fpath):
+    if metric_fpath is None:
+        metric_fpath = '{}.marked_dup_metrics.txt'.format(os.path.splitext(in_fpath)[0])
+
+    cmd = ['picard-tools', 'MarkDuplicates', 'VALIDATION_STRINGENCY=LENIENT',
+           'M={}'.format(metric_fpath), 'INPUT={}'.format(in_fpath),
+           'OUTPUT={}'.format(out_fpath)]
+    failed = False
+    try:
+        check_call(cmd)
+    except CalledProcessError:
+        failed = True
+    return failed

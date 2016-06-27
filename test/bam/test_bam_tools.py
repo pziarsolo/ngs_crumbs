@@ -27,7 +27,7 @@ from crumbs.bam.bam_tools import (filter_bam, calmd_bam, realign_bam,
                                   index_bam, merge_sams,
                                   _downgrade_edge_qualities,
                                   _restore_qual_from_tag, LEFT_DOWNGRADED_TAG,
-                                  RIGTH_DOWNGRADED_TAG)
+                                  RIGTH_DOWNGRADED_TAG, mark_duplicates)
 from crumbs.utils.file_utils import TemporaryDir
 
 # pylint: disable=C0111
@@ -160,6 +160,38 @@ class CalmdTest(unittest.TestCase):
         assert open(calmd_fhand.name).read()
 
 
+class MarkDupTest(unittest.TestCase):
+    def test_mark_dup_bam(self):
+        bam_fpath = os.path.join(TEST_DATA_DIR, 'sample.bam')
+
+        try:
+            out_bam = NamedTemporaryFile()
+            met_fhand = NamedTemporaryFile()
+            mark_duplicates(bam_fpath, out_bam.name, metric_fpath=met_fhand.name)
+
+        finally:
+            if os.path.exists(out_bam.name):
+                out_bam.close()
+            if os.path.exists(met_fhand.name):
+                met_fhand.close()
+
+    def test_calmd_no_out(self):
+        bam_fpath = os.path.join(TEST_DATA_DIR, 'sample.bam')
+        copied_fpath = os.path.join(TEST_DATA_DIR, 'sample_copy.bam')
+        try:
+            met_fhand = NamedTemporaryFile()
+            shutil.copy(bam_fpath, copied_fpath)
+            orig_stats = os.stat(copied_fpath)
+            mark_duplicates(copied_fpath, metric_fpath=met_fhand.name)
+            new_stats = os.stat(copied_fpath)
+            assert new_stats != orig_stats
+        finally:
+            if os.path.exists(copied_fpath):
+                os.remove(copied_fpath)
+            if os.path.exists(met_fhand.name):
+                met_fhand.close()
+
+
 class DowngradeQuality(unittest.TestCase):
 
     def test_downgrade_read_edges(self):
@@ -267,7 +299,6 @@ class DowngradeQuality(unittest.TestCase):
                 if msg not in open(stderr_fhand.name).read():
                     raise
 
-
 if __name__ == "__main__":
-    # import sys; sys.argv = ['', 'DowngradeQuality']
+    # import sys; sys.argv = ['', 'MarkDupTest']
     unittest.main()
