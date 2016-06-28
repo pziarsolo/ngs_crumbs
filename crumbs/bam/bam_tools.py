@@ -282,7 +282,8 @@ def _restore_qual_from_tag(aligned_read):
         aligned_read.query_qualities = array('B', recover_qual)
 
 
-def mark_duplicates(in_fpath, out_fpath=None, tmp_dir=None, metric_fpath=None):
+def mark_duplicates(in_fpath, out_fpath=None, tmp_dir=None, metric_fpath=None,
+                    stderr_fhand=None):
     if out_fpath is None:
         out_fpath = in_fpath
 
@@ -293,7 +294,8 @@ def mark_duplicates(in_fpath, out_fpath=None, tmp_dir=None, metric_fpath=None):
     else:
         temp_out_fpath = out_fpath
 
-    failed = _mark_duplicates(in_fpath, temp_out_fpath, metric_fpath)
+    failed = _mark_duplicates(in_fpath, temp_out_fpath, metric_fpath,
+                              stderr_fhand=stderr_fhand)
 
     if failed:
         msg = 'Mark duplicate process failed, for {}'
@@ -303,16 +305,16 @@ def mark_duplicates(in_fpath, out_fpath=None, tmp_dir=None, metric_fpath=None):
         shutil.move(temp_out_fpath, out_fpath)
 
 
-def _mark_duplicates(in_fpath, out_fpath, metric_fpath):
+def _mark_duplicates(in_fpath, out_fpath, metric_fpath, stderr_fhand):
     if metric_fpath is None:
-        metric_fpath = '{}.marked_dup_metrics.txt'.format(os.path.splitext(in_fpath)[0])
+        metric_fpath = '/dev/null'
 
     cmd = ['picard-tools', 'MarkDuplicates', 'VALIDATION_STRINGENCY=LENIENT',
            'M={}'.format(metric_fpath), 'INPUT={}'.format(in_fpath),
            'OUTPUT={}'.format(out_fpath)]
     failed = False
     try:
-        check_call(cmd)
+        check_call(cmd, stderr=stderr_fhand, stdout=stderr_fhand)
     except CalledProcessError:
         failed = True
     return failed

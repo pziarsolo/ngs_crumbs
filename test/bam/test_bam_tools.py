@@ -163,26 +163,25 @@ class CalmdTest(unittest.TestCase):
 class MarkDupTest(unittest.TestCase):
     def test_mark_dup_bam(self):
         bam_fpath = os.path.join(TEST_DATA_DIR, 'sample.bam')
-
         try:
+            stderr = NamedTemporaryFile()
             out_bam = NamedTemporaryFile()
-            met_fhand = NamedTemporaryFile()
-            mark_duplicates(bam_fpath, out_bam.name, metric_fpath=met_fhand.name)
-
+            mark_duplicates(bam_fpath, out_bam.name, stderr_fhand=stderr)
         finally:
             if os.path.exists(out_bam.name):
                 out_bam.close()
-            if os.path.exists(met_fhand.name):
-                met_fhand.close()
+            stderr.close()
 
-    def test_calmd_no_out(self):
+    def test_mark_dup_no_out(self):
         bam_fpath = os.path.join(TEST_DATA_DIR, 'sample.bam')
         copied_fpath = os.path.join(TEST_DATA_DIR, 'sample_copy.bam')
         try:
+            stderr = NamedTemporaryFile()
             met_fhand = NamedTemporaryFile()
             shutil.copy(bam_fpath, copied_fpath)
             orig_stats = os.stat(copied_fpath)
-            mark_duplicates(copied_fpath, metric_fpath=met_fhand.name)
+            mark_duplicates(copied_fpath, metric_fpath=met_fhand.name,
+                            stderr_fhand=stderr)
             new_stats = os.stat(copied_fpath)
             assert new_stats != orig_stats
         finally:
@@ -190,6 +189,7 @@ class MarkDupTest(unittest.TestCase):
                 os.remove(copied_fpath)
             if os.path.exists(met_fhand.name):
                 met_fhand.close()
+            stderr.close()
 
 
 class DowngradeQuality(unittest.TestCase):
