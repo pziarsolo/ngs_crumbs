@@ -76,7 +76,7 @@ def get_or_create_bwa_index(fpath, directory=None):
 
 
 def map_with_bwamem(index_fpath, unpaired_fpath=None, paired_fpaths=None,
-                    interleave_fpath=None, threads=None, log_fpath=None,
+                    interleave_fpath=None, threads=None, log_fhand=None,
                     extra_params=None, readgroup=None):
     'It maps with bwa mem algorithm'
     interleave = False
@@ -117,12 +117,7 @@ def map_with_bwamem(index_fpath, unpaired_fpath=None, paired_fpaths=None,
     cmd.extend(extra_params)
     cmd.extend(in_fpaths)
 
-    if log_fpath is None:
-        stderr = NamedTemporaryFile(suffix='.stderr')
-    else:
-        stderr = open(log_fpath, 'w')
-    #raw_input(' '.join(cmd))
-    bwa = popen(cmd, stderr=stderr, stdout=PIPE)
+    bwa = popen(cmd, stderr=log_fhand, stdout=PIPE)
     return bwa
 
 TOPHAT_RG_TRANSLATOR = {'LB': 'library', 'SM': 'sample', 'ID': 'id',
