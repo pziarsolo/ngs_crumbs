@@ -51,13 +51,13 @@ def _select_rgs_by_sample(in_fhands, sample=None):
 def make_stats_for_sample(in_fhands, stats_fhand, sample=None, min_mapq=None):
     selected_rgs = _select_rgs_by_sample(in_fhands, sample)
     if len(in_fhands) > 1:
-        cat_cmd = ['samtools', 'cat']
-        cat_cmd.extend([fhand.name for fhand in in_fhands])
-        cat_cmd.append('|')
+        merge_cmd = ['samtools', 'merge', '-u', '-']
+        merge_cmd.extend([fhand.name for fhand in in_fhands])
+        merge_cmd.append('|')
     else:
-        cat_cmd = []
+        merge_cmd = []
 
-    view_cmd = ['samtools', 'view', '-b', '-F', '1536']
+    view_cmd = ['samtools', 'view', '-u', '-F', '1536']
     if min_mapq:
         view_cmd.extend(['-q', str(min_mapq)])
 
@@ -70,7 +70,7 @@ def make_stats_for_sample(in_fhands, stats_fhand, sample=None, min_mapq=None):
         rg_fhand.flush()
         view_cmd.extend(['-R', rg_fhand.name])
 
-    if cat_cmd:
+    if merge_cmd:
         view_cmd.append('-')
     else:
         view_cmd.append(in_fhands[0].name)
@@ -78,13 +78,14 @@ def make_stats_for_sample(in_fhands, stats_fhand, sample=None, min_mapq=None):
 
     stat_cmd = ['samtools', 'stats', '-d', '-']
 
-    cmd = cat_cmd + view_cmd + stat_cmd
+    cmd = merge_cmd + view_cmd + stat_cmd
     bash_fhand = NamedTemporaryFile()
     bash_fhand.write('#!/bin/bash\n')
     bash_fhand.write('set -o pipefail\n')
     bash_fhand.write(' '.join(cmd) + '\n')
     bash_fhand.flush()
-    print(open(bash_fhand.name).read())
+    sys.stderr.write(open(bash_fhand.name).read())
+
     process = Popen(['bash', bash_fhand.name], stdout=stats_fhand)
     process.wait()
     status_code = process.returncode
