@@ -84,7 +84,7 @@ def make_stats_for_sample(in_fhands, stats_fhand, sample=None, min_mapq=None):
     bash_fhand.write('set -o pipefail\n')
     bash_fhand.write(' '.join(cmd) + '\n')
     bash_fhand.flush()
-    sys.stderr.write(open(bash_fhand.name).read())
+    # sys.stderr.write(open(bash_fhand.name).read())
 
     process = Popen(['bash', bash_fhand.name], stdout=stats_fhand)
     process.wait()
