@@ -67,7 +67,7 @@ except ImportError:
 try:
     from Bio.SeqIO.QualityIO import FastqGeneralIterator
 except ImportError:
-    from crumbs.utils.biopython_code import FastqGeneralIterator
+    FastqGeneralIterator = create_fake_class(MSG + BIO)
 
 try:
     from Bio.SeqIO.FastaIO import FastaIterator
