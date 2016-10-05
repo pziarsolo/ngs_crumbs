@@ -311,3 +311,7 @@ def slice_seq(seq, start=None, stop=None):
 def assing_kind_to_seqs(kind, seqs, file_format):
     'It puts each seq into a NamedTuple named Seq'
     return (SeqWrapper(kind, seq, file_format) for seq in seqs)
+
+def _assign_kind_to_seq(kind, seq, file_format):
+    return (SeqWrapper(kind, seq, file_format))
+

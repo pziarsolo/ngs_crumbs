@@ -35,7 +35,8 @@ BLAST_FIELDS = {'query': 'qseqid', 'subject': 'sseqid', 'identity': 'pident',
                 'gap_open': 'gapopen', 'query_start': 'qstart',
                 'query_end': 'qend', 'subject_start': 'sstart',
                 'subject_end': 'send', 'expect': 'evalue', 'score': 'bitscore',
-                'subject_length': 'slen', 'query_length': 'qlen'}
+                'subject_length': 'slen', 'query_length': 'qlen',
+                'query_frame': 'qframe', 'subject_frame': 'sframe'}
 
 TASKS = {'blastn': ('megablast', 'blastn', 'blastn-short', 'dc-megablast',
                    'rmblastn'),
