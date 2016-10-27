@@ -844,7 +844,7 @@ def _score_above_threshold(score, min_score, max_score, log_tolerance,
 
 
 def _create_scores_mapper_(score_key, score_tolerance=None,
-                           max_score=None, min_score=None):
+                           max_score=None, min_score=None, scores=None):
     'It creates a mapper that keeps only the best matches'
 
     if score_tolerance is not None:
@@ -873,11 +873,19 @@ def _create_scores_mapper_(score_key, score_tolerance=None,
         filtered_matches = []
         for match in alignment['matches']:
             filtered_match_parts = []
+            if (scores is not None and
+                score_key in match['match_parts'][0]['scores']):
+                # we store the best match_score, the best one
+                score = match['match_parts'][0]['scores'][score_key]
+                scores.append(score)
+
             for match_part in match['match_parts']:
                 score = match_part['scores'][score_key]
                 if _score_above_threshold(score, min_score, max_score,
                                           log_tolerance, log_best_score):
                     filtered_match_parts.append(match_part)
+
+
             match['match_parts'] = filtered_match_parts
             if not len(match['match_parts']):
                 continue
@@ -891,6 +899,47 @@ def _create_scores_mapper_(score_key, score_tolerance=None,
     return map_
 
 
+def _create_scores_logger(score_key, scores, max_score=None, min_score=None,
+                          score_tolerance=None):
+    if score_tolerance is not None:
+        log_tolerance = log10(score_tolerance)
+    else:
+        log_tolerance = None
+
+    def map_(alignment):
+        '''It returns an alignment with the best matches'''
+        if alignment is None:
+            return None
+        if log_tolerance is None:
+            log_best_score = None
+        else:
+            # score of the best match
+            try:
+                best_match = alignment['matches'][0]
+                best_score = _get_match_score(best_match, score_key)
+                if best_score == 0.0:
+                    log_best_score = 0.0
+                else:
+                    log_best_score = log10(best_score)
+            except IndexError:
+                log_best_score = None
+
+        filtered_matches = []
+        for match in alignment['matches']:
+            filtered_match_parts = []
+            if (scores is not None and
+                score_key in match['match_parts'][0]['scores']):
+                # we store the best match_score, the best one
+                score = match['match_parts'][0]['scores'][score_key]
+
+            for match_part in match['match_parts']:
+                score = match_part['scores'][score_key]
+                if _score_above_threshold(score, min_score, max_score,
+                                          log_tolerance, log_best_score):
+                    scores.append(score)
+        return alignment
+    return map_
+
 def _create_best_scores_mapper(score_key, score_tolerance=None,
                               max_score=None, min_score=None):
     'It creates a mapper that keeps only the best matches'
@@ -898,12 +947,12 @@ def _create_best_scores_mapper(score_key, score_tolerance=None,
                                  max_score=max_score, min_score=min_score)
 
 
-def _create_scores_mapper(score_key, max_score=None, min_score=None):
+def _create_scores_mapper(score_key, max_score=None, min_score=None, scores=None):
     'It creates a mapper that keeps only the best matches'
     if max_score is None and min_score is None:
         raise ValueError('Either max_score or min_score should be given')
     return _create_scores_mapper_(score_key, max_score=max_score,
-                                 min_score=min_score)
+                                 min_score=min_score, scores=scores)
 
 
 def _create_deepcopy_mapper():
@@ -1173,6 +1222,7 @@ def _create_min_length_mapper(length_in_query, min_num_residues=None,
 
         filtered_matches = []
         query = alignment.get('query', None)
+        query_name = query.get('name', None) if query else None
         for match in alignment['matches']:
             if match is None:
                 continue
@@ -1183,7 +1233,7 @@ def _create_min_length_mapper(length_in_query, min_num_residues=None,
                     mol_length = match['subject']['length']
             else:
                 mol_length = None  # it doesn't matter because we're after an
-                                    # absolute value
+                                   # absolute value
             if filter_match_parts:
                 filtered_match_parts = []
                 for match_part in match['match_parts']:
@@ -1201,11 +1251,15 @@ def _create_min_length_mapper(length_in_query, min_num_residues=None,
                     continue
                 filtered_matches.append(match)
             else:
+                subject_name = match['subject'].get('name', None) if 'subject' in match else None
+                if query_name is not None and query_name == subject_name:
+                    filtered_matches.append(match)
+                    continue
                 match_length = _match_length(match, length_in_query)
                 match_ok = _match_long_enough(match_length, mol_length,
-                                                  min_num_residues,
-                                                  min_percentage,
-                                                  length_in_query)
+                                              min_num_residues,
+                                              min_percentage,
+                                              length_in_query)
                 if match_ok:
                     filtered_matches.append(match)
         alignment['matches'] = filtered_matches
@@ -1287,6 +1341,8 @@ FILTER_COLLECTION = {'best_scores':
                       'kind': MAPPER},
                      'score_threshold':
                      {'funct_factory': _create_scores_mapper, 'kind': MAPPER},
+                     'score_threshold_logger':
+                     {'funct_factory': _create_scores_logger, 'kind': MAPPER},
                      'min_length': {'funct_factory': _create_min_length_mapper,
                                     'kind': MAPPER},
                      'deepcopy': {'funct_factory': _create_deepcopy_mapper,
@@ -1307,12 +1363,13 @@ def filter_alignments(alignments, config):
 
     The filters and maps to use will be decided based on the configuration.
     '''
-    config = copy.deepcopy(config)
+    config = [conf for conf in config]
     config.insert(0, {'kind': 'deepcopy'})
     config.append({'kind': 'fix_matches'})
     config.append({'kind': 'filter_empty'})
 
     # create the pipeline
+
     for conf in config:
         funct_fact = FILTER_COLLECTION[conf['kind']]['funct_factory']
         kind = FILTER_COLLECTION[conf['kind']]['kind']

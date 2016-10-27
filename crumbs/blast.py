@@ -356,7 +356,6 @@ class Blaster(object):
         blasts, blast_fhand = _do_blast_2(blastdb, seqrecords, self.program,
                                           params=self.params, dbtype=dbtype,
                                           remote=self._remote)
-        # print open(blast_fhand.name).read()
         if self.filters is not None:
             blasts = filter_alignments(blasts, config=self.filters)
 

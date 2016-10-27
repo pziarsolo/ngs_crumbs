@@ -149,7 +149,7 @@ class BlastParserTest(unittest.TestCase):
             n_blasts += 1
         assert n_blasts == 4
 
-        #with the subject id given in the xml blast
+        # with the subject id given in the xml blast
         expected_results = [
             {'query':{'name':'cCL1Contig2',
                       'description':'<unknown description>',
@@ -159,7 +159,7 @@ class BlastParserTest(unittest.TestCase):
             _check_blast(blast, expected_results[index])
 
         # Check using def as acceion in all the blasts
-        #It changes depending on the blast output format. depends on version
+        # It changes depending on the blast output format. depends on version
         blast_file = open(os.path.join(TEST_DATA_DIR, 'melon_tair.xml'))
         parser = BlastParser(fhand=blast_file)
         assert parser.next()['matches'][0]['subject']['name'] == 'tair1'
@@ -553,6 +553,7 @@ class AlignmentFilters(unittest.TestCase):
         filter1 = {'kind': 'score_threshold',
                    'score_key': 'score',
                    'min_score': 100,
+                   'store_score_array': True
                    }
 
         align1 = {'matches': [{'scores':{'score':400},
@@ -594,8 +595,10 @@ class AlignmentFilters(unittest.TestCase):
                                'match_parts':[{'scores':{'score':20}}],
                               }]}
         alignments = [align1, align2]
+        scores = []
         filtered_alignments = list(filter_alignments(alignments,
-                                                     config=[filter1]))
+                                                     config=[filter1],
+                                                     scores=scores))
         expected_align1 = {'matches': [{'scores':{'score':400},
                                'start':0,
                                'end':40,
@@ -617,6 +620,59 @@ class AlignmentFilters(unittest.TestCase):
                  }
         _check_blast(filtered_alignments[0], expected_align1)
         assert len(filtered_alignments) == 1
+        assert scores == [400, 20, 90, 20]
+
+    def test_min_score_logger(self):
+        'We keep the matches with the scores above the threshold'
+        filter1 = {'kind': 'score_threshold_logger',
+                   'score_key': 'score',
+                   'store_score_array': True
+                   }
+
+        align1 = {'matches': [{'scores':{'score':400},
+                               'start':0,
+                               'end':100,
+                               'subject_start':0,
+                               'subject_end':100,
+                               'match_parts':[{'scores':{'score':400},
+                                              'query_start':0, 'query_end':10,
+                                              'subject_start':0,
+                                              'subject_end':10,
+                                             },
+                                             {'scores':{'score':300},
+                                              'query_start':30, 'query_end':40,
+                                              'subject_start':30,
+                                              'subject_end':40,
+                                             },
+                                             {'scores':{'score':50},
+                                              'query_start':50, 'query_end':60,
+                                              'subject_start':50,
+                                              'subject_end':60,
+                                             },
+                                             {'scores':{'score':40},
+                                             'query_start':80, 'query_end':100,
+                                              'subject_start':80,
+                                              'subject_end':100,
+                                             }
+                                            ],
+                               },
+                               {'scores':{'score':20},
+                               'match_parts':[{'scores':{'score':20}}],
+                               },
+                               {'scores':{'score':90},
+                                'match_parts':[{'scores':{'score':90}}],
+                               }
+                             ]
+                 }
+        align2 = {'matches': [{'scores':{'score':20},
+                               'match_parts':[{'scores':{'score':20}}],
+                              }]}
+        alignments = [align1, align2]
+        scores = []
+        filtered_alignments = list(filter_alignments(alignments,
+                                                     config=[filter1],
+                                                     scores=scores))
+        assert scores == [400, 20, 90, 20]
 
     def test_max_score_mapper(self):
         filter1 = {'kind': 'best_scores',
@@ -873,10 +929,10 @@ class AlignmentFilters(unittest.TestCase):
         blast_file = open(os.path.join(TEST_DATA_DIR, 'blast.xml'))
         parser = BlastParser(fhand=blast_file)
         match_summary = _summarize_matches(parser)
-        #lcl|2_0 cCL1Contig2
-        #lcl|3_0 cCL1Contig3
-        #lcl|4_0 cCL1Contig4
-        #lcl|5_0 cCL1Contig5
+        # lcl|2_0 cCL1Contig2
+        # lcl|3_0 cCL1Contig3
+        # lcl|4_0 cCL1Contig4
+        # lcl|5_0 cCL1Contig5
         expected = {'cCL1Contig2': 3, 'cCL1Contig3': 1,
                     'cCL1Contig4': 5, 'cCL1Contig5': 8}
         _check_match_summary(match_summary, expected)
@@ -900,7 +956,7 @@ class AlignmentFilters(unittest.TestCase):
         'We can keep the hits scores above the given one'
         blast_file = open(os.path.join(TEST_DATA_DIR, 'blast.xml'))
 
-        #with evalue
+        # with evalue
         filters = [{'kind': 'score_threshold',
                     'score_key': 'expect',
                     'max_score': 1e-34,
@@ -912,7 +968,7 @@ class AlignmentFilters(unittest.TestCase):
         match_summary = _summarize_matches(filtered_blasts)
         _check_match_summary(match_summary, expected)
 
-        #with similartiry
+        # with similartiry
         filters = [{'kind': 'score_threshold',
                     'score_key': 'similarity',
                     'min_score': 92,
@@ -928,7 +984,7 @@ class AlignmentFilters(unittest.TestCase):
         'We can keep the hits length above the given one'
         blast_file = open(os.path.join(TEST_DATA_DIR, 'blast.xml'))
 
-        #with the min length given in base pairs
+        # with the min length given in base pairs
         filters = [{'kind': 'min_length',
                     'min_num_residues': 500,
                     'length_in_query': True
@@ -940,7 +996,7 @@ class AlignmentFilters(unittest.TestCase):
         match_summary = _summarize_matches(filtered_blasts)
         _check_match_summary(match_summary, expected)
 
-        #with the min length given in query
+        # with the min length given in query
         filters = [{'kind': 'min_length',
                     'min_percentage': 70,
                     'length_in_query': True
@@ -950,10 +1006,10 @@ class AlignmentFilters(unittest.TestCase):
         blasts = BlastParser(fhand=blast_file)
         filtered_blasts = filter_alignments(blasts, config=filters)
         match_summary = _summarize_matches(filtered_blasts)
-        #print match_summary
+        # print match_summary
         _check_match_summary(match_summary, expected)
 
-        #with the min length given in subject %
+        # with the min length given in subject %
         filters = [{'kind': 'min_length',
                     'min_percentage': 0.002,
                     'length_in_query': False
@@ -1004,22 +1060,22 @@ class AlignmentSearchSimilDistribTest(unittest.TestCase):
                           'match_parts': [match_part2]
                          }]}
         results = [result1]
-        #filtering the query-subj with the same names
+        # filtering the query-subj with the same names
         scores = alignment_results_scores(results, ['similarity'])
         assert scores == [90.0]
-        #without the filtering
+        # without the filtering
         scores = alignment_results_scores(results, ['similarity'],
                                           filter_same_query_subject=False)
         assert scores == [90.0, 80.0]
 
-        #we can ask for several scores at once
+        # we can ask for several scores at once
         scores = alignment_results_scores(results,
                                           ['similarity', 'similarity'],
                                           filter_same_query_subject=False)
         assert scores == [[90.0, 80.0], [90.0, 80.0]]
 
 
-#class WaterTests(unittest.TestCase):
+# class WaterTests(unittest.TestCase):
 #    'Water related tests'
 #    @staticmethod
 #    def test_build_water_relations():
@@ -1198,5 +1254,5 @@ class MergeMatchesTests(unittest.TestCase):
                               'elongated': 2}
 
 if __name__ == "__main__":
-    # import sys;sys.argv = ['', 'AlignmentFilters.test_full_length_match_filter']
+    # import sys;sys.argv = ['', 'AlignmentFilters.test_min_score_logger']
     unittest.main()
